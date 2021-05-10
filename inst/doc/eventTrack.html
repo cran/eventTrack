@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<meta name="date" content="2021-05-07" />
+
+<title>Event tracking: predict analysis timepoints for ongoing clinical trials</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Event tracking: predict analysis timepoints for ongoing clinical trials</h1>
+<h4 class="author">Kaspar Rufibach</h4>
+<address class="author_afil">
+PD Data Sciences, Methods, Collaboration, and Outreach Group (MCO), Roche Basel<br><h4 class="date">07 May 2021</h4>
+
+
+
+<div id="acknowledgments" class="section level1">
+<h1>Acknowledgments</h1>
+<p>I thank Marcel Wolbers and Godwin Yung for a careful review an earlier version of this document and helpful comments.</p>
+</div>
+<div id="purpose" class="section level1">
+<h1>Purpose</h1>
+<p>This tutorial outlines how one can predict an interim (IA) or final analysis (FA) clinical cutoff date (CCOD) in an <strong>ongoing</strong> trial, i.e. in a trial where</p>
+<ul>
+<li>patients have already been recruited but have not yet experienced the event and/or</li>
+<li>patients have already been recruited and have already experienced the event and/or</li>
+<li>further patients will be recruited in the future.</li>
+</ul>
+<p>Methodology has been implemented in the <a href="https://cran.r-project.org/">R</a> package <em>eventTrack</em> (<span class="citation">Rufibach (2021)</span>). Please note that the <code>R</code> code included in this document has <strong>not</strong> been formally validated.</p>
+</div>
+<div id="resources-and-how-to-cite-eventtrack" class="section level1">
+<h1>Resources and how to cite eventTrack</h1>
+<ul>
+<li>Citation of the R package:</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">citation</span>(<span class="st">&quot;eventTrack&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+## To cite package &#39;eventTrack&#39; in publications use:
+## 
+##   Kaspar Rufibach (2021). eventTrack: Event Prediction for
+##   Time-to-Event Endpoints. R package version 1.0.0.
+## 
+## A BibTeX entry for LaTeX users is
+## 
+##   @Manual{,
+##     title = {eventTrack: Event Prediction for Time-to-Event Endpoints},
+##     author = {Kaspar Rufibach},
+##     year = {2021},
+##     note = {R package version 1.0.0},
+##   }
+## 
+## ATTENTION: This citation information has been auto-generated from the
+## package DESCRIPTION file and may need manual editing, see
+## &#39;help(&quot;citation&quot;)&#39;.</code></pre>
+<ul>
+<li>Citation of the statistical methods used in eventTrack: the implemented methodology for the point prediction is taken from <span class="citation">Fang and Su (2011)</span>.</li>
+<li>The confidence intervals have been presented in a talk (<a href="http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf">slides</a>) within a BBS seminar, <span class="citation">Rufibach (2016)</span>.</li>
+</ul>
+</div>
+<div id="challenge" class="section level1">
+<h1>Challenge</h1>
+<p>For a RCT with <strong>time-to-event</strong> endpoint we have that:</p>
+<ul>
+<li>A part of patients is already accrued, another part is still to be accrued.</li>
+<li>We plan an IA or FA after a <strong>pre-specified number of events</strong>.</li>
+</ul>
+<p>The questions we want to answer are:</p>
+<ul>
+<li>When does this number of events happen?</li>
+<li>Can we assign a confidence interval around that timepoint?</li>
+<li>On a more strategic level: how can we manage the potentially large uncertainty of our point estimates in clinical teams (and higher up)?</li>
+</ul>
+</div>
+<div id="methodology" class="section level1">
+<h1>Methodology</h1>
+<p>For simplicity, assume for now only blinded data pooling the treatment arms is available. What we are interested in is the expected number of events, <span class="math inline">\(m(T, S)\)</span>, at a given timepoint <span class="math inline">\(T\)</span>. This quantity depends, of course, on the timepoint <span class="math inline">\(T\)</span> and on the survival function at which events happen. If these two quantities are known, we can predict <span class="math inline">\(m\)</span> using the following formula:</p>
+<p><span class="math display">\[
+  m(t, S) = {\color{blue}\sum_{h \in {\cal{I}}_1} 1} \ + \ 
+           {\color{brown}\sum_{j \in {\cal{I}}_2}P\Big(\text{event in }(t_j, T] | \text{no event up to }t_j\Big)} \ + \
+           {\color{red}\sum_{j \in {\cal{I}}_3} P\Big(\text{event in }(a_i, T]\Big)} \\
+       = {\color{blue}n} \ + \ 
+           {\color{brown}\sum_{j \in {\cal{I}}_2} \frac{S(t_j) - S(T)}{S(t_j)} 1\{T &gt; t_j\}} \ + \
+           {\color{red}\sum_{j \in {\cal{I}}_3} \Big(1 - S(T - a_i)\Big) 1\{T &gt; a_i\}}.
+\]</span> This formula defines the following sets of patients:</p>
+<ul>
+<li><span class="math inline">\({\color{blue}{\cal{I}}_1}\)</span>: patients who already had the event, <span class="math inline">\(n\)</span>.</li>
+<li><span class="math inline">\({\color{brown}{\cal{I}}_2}\)</span>: patients who are censored at <span class="math inline">\(t_j\)</span>.</li>
+<li><span class="math inline">\({\color{red}{\cal{I}}_3}\)</span>: patients to be recruited at <span class="math inline">\(a_i\)</span>.</li>
+</ul>
+<p>So, in order to compute <span class="math inline">\(m(T, S)\)</span> we need to specify two things:</p>
+<ul>
+<li>a projection of when the remaining patients will be recruited, i.e. we need to specify the numbers <span class="math inline">\(a_i\)</span>,</li>
+<li>what to plug in for <span class="math inline">\(S\)</span>.</li>
+</ul>
+<p>Ideally, for <span class="math inline">\(S\)</span> we would like to use a nonparametric estimate, such as e.g. Kaplan-Meier. However, the estimator of <span class="math inline">\(S\)</span> needs to be defined at least up to the timepoint <span class="math inline">\(T\)</span>, which typically is (much) later than the maximally observed event or censoring time at the cleaning milestone. This means we need an estimate of <span class="math inline">\(S\)</span> that <strong>extrapolates</strong> beyond where we have data available. <span class="citation">Fang and Su (2011)</span> propose to use a hybrid parametric / non-parametric estimate. In a first step, change points in the survival function (or alternatively formulated, breaks in the piecewise constant hazard) are detected. Secondly, the survival function before the last change point is estimated non-parametrically via Kaplan-Meier and the tail beyond the last change point is estimated parametrically, i.e. based on an exponential distribution.</p>
+<p>How to infer the changepoint via sequential testing is described in <span class="citation">Fang and Su (2011)</span>, based on the method initially described in <span class="citation">Goodman, Li, and Tiwari (2011)</span>. It works as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Determine the maximal number of changepoints, <span class="math inline">\(K\)</span>. <span class="math inline">\(K = 5\)</span> generally works well.</li>
+<li>Estimate a piecewise exponential hazard function with <span class="math inline">\(K\)</span> changepoints and hazard values <span class="math inline">\(\alpha_1, \ldots, \alpha_{K + 1}\)</span>. Cutpoints <span class="math inline">\(\tau_1, \ldots, \tau_K\)</span> are estimated as well.</li>
+<li>Start with the model with no change points and perform a hypothesis test to compare it with the model with one change point. If we fail to reject the null hypothesis, then we stop and conclude that the final model has no change points.</li>
+<li>If we reject the null hypothesis, then we will continue on to the next hypothesis test; compare the model with one change point, to the model with two change points. If the null hypothesis is rejected we test the subsequent hypothesis. That is, we will test for the existence of <span class="math inline">\(\tau_k\)</span> only after verifying the existence of <span class="math inline">\(\tau_{k-1}\)</span>. The algorithm is continued until we fail to reject a hypothesis.</li>
+<li>To control for overfitting the significance level is adjusted using an <span class="math inline">\(\alpha\)</span>-spending function. For a familywise error rate of <span class="math inline">\(\alpha\)</span>, <span class="citation">Goodman, Li, and Tiwari (2011)</span> propose to use the local significance levels <span class="math inline">\(\alpha^*_k, k = 1, \ldots, K\)</span> defined as <span class="math display">\[
+  \alpha^*_k = \alpha / 2^{k-1}. 
+\]</span> In order to find a parsimonious model, this spending function requires strong evidence for choosing a more complicated model, a model with more change points, over a simpler one. Since the spending function is decreasing, the test for each additional change point will be conducted at a more conservative local significance level than the one before it. That this spending function maintains the familywise error rate is shown in <span class="citation">Goodman, Li, and Tiwari (2011)</span>.</li>
+</ol>
+</div>
+<div id="example-simulating-data-and-detailed-prediction" class="section level1">
+<h1>Example: simulating data and detailed prediction</h1>
+<p>In order to make event predictions, a sufficiently clean dataset including accrual times and the relevant time-to-event endpoint data up to the CCOD is needed. In addition, if recruitment is not yet completed, a prediction regarding the accrual of the remaining patient is required as well.</p>
+<p>In this section, a detailed example of all steps required for an event prediction is provided based on simulated trial data from <code>rpact</code>. In the next section, a simpler minimal analysis with only the key steps is shown.</p>
+<p>First, let us load the necessary packages:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="co"># load necessary packages</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">library</span>(rpact)          <span class="co"># to simulate illustrative dataset</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="kw">library</span>(eventTrack)     <span class="co"># event tracking methodology</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="kw">library</span>(fitdistrplus)   <span class="co"># to estimate Weibull fit</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="kw">library</span>(knitr)          <span class="co"># to prettify some outputs</span></span></code></pre></div>
+<div id="simulating-an-illustrative-dataset" class="section level2">
+<h2>Simulating an illustrative dataset</h2>
+<p>We start by illustrating how to predict the number of events of a clinical trial over time at the design stage using <code>rpact</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="co"># trial details </span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>alpha &lt;-<span class="st"> </span><span class="fl">0.05</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>beta &lt;-<span class="st"> </span><span class="fl">0.2</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="co"># design</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>design &lt;-<span class="st"> </span><span class="kw">getDesignGroupSequential</span>(<span class="dt">informationRates =</span> <span class="dv">1</span>, <span class="dt">typeOfDesign =</span> <span class="st">&quot;asOF&quot;</span>, </span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>                                   <span class="dt">sided =</span> <span class="dv">1</span>, <span class="dt">alpha =</span> alpha, <span class="dt">beta =</span> beta)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="co"># max number of patients</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>maxNumberOfSubjects1 &lt;-<span class="st"> </span><span class="dv">500</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>maxNumberOfSubjects2 &lt;-<span class="st"> </span><span class="dv">500</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>maxNumberOfSubjects &lt;-<span class="st"> </span>maxNumberOfSubjects1 <span class="op">+</span><span class="st"> </span>maxNumberOfSubjects2</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a><span class="co"># survival hazard</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true"></a>piecewiseSurvivalTime &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">6</span>, <span class="dv">9</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true"></a>lambda2 &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="fl">0.025</span>, <span class="fl">0.04</span>, <span class="fl">0.02</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true"></a><span class="co"># effect size</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true"></a>hr &lt;-<span class="st"> </span><span class="fl">0.75</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true"></a><span class="co"># quantities that determine timing of reporting events</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true"></a>dout1 &lt;-<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true"></a>dout2 &lt;-<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true"></a>douttime &lt;-<span class="st"> </span><span class="dv">12</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true"></a>accrualTime &lt;-<span class="st"> </span><span class="dv">0</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true"></a>accrualIntensity &lt;-<span class="st"> </span><span class="dv">42</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true"></a><span class="co"># maximal sample size</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true"></a>samplesize &lt;-<span class="st"> </span><span class="kw">getSampleSizeSurvival</span>(<span class="dt">design =</span> design, <span class="dt">piecewiseSurvivalTime =</span> piecewiseSurvivalTime, </span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true"></a>                        <span class="dt">lambda2 =</span> lambda2, <span class="dt">hazardRatio =</span> hr, <span class="dt">dropoutRate1 =</span> dout1, </span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true"></a>                        <span class="dt">dropoutRate2 =</span> dout2, <span class="dt">dropoutTime =</span> douttime, <span class="dt">accrualTime =</span> accrualTime, </span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true"></a>                        <span class="dt">accrualIntensity =</span> accrualIntensity,</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true"></a>                        <span class="dt">maxNumberOfSubjects =</span> maxNumberOfSubjects)  </span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true"></a>nevents &lt;-<span class="st"> </span><span class="kw">as.vector</span>(<span class="kw">ceiling</span>(samplesize<span class="op">$</span>eventsPerStage))</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true"></a><span class="co"># expected number of events overall and per group at 1-60 months after trial start</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true"></a>time &lt;-<span class="st"> </span><span class="dv">0</span><span class="op">:</span><span class="dv">60</span> </span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true"></a>probEvent &lt;-<span class="st"> </span><span class="kw">getEventProbabilities</span>(<span class="dt">time =</span> time, </span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true"></a>    <span class="dt">piecewiseSurvivalTime =</span> piecewiseSurvivalTime, <span class="dt">lambda2 =</span> lambda2, </span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true"></a>    <span class="dt">hazardRatio =</span> hr,</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true"></a>    <span class="dt">dropoutRate1 =</span> dout1, <span class="dt">dropoutRate2 =</span> dout2, <span class="dt">dropoutTime =</span> douttime,</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true"></a>    <span class="dt">accrualTime =</span> accrualTime, <span class="dt">accrualIntensity =</span> accrualIntensity, </span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true"></a>    <span class="dt">maxNumberOfSubjects =</span> maxNumberOfSubjects)</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true"></a></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true"></a><span class="co"># extract expected number of events</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true"></a>expEvent &lt;-<span class="st"> </span>probEvent<span class="op">$</span>overallEventProbabilities <span class="op">*</span><span class="st"> </span>maxNumberOfSubjects   <span class="co"># overall</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true"></a>expEventInterv &lt;-<span class="st"> </span>probEvent<span class="op">$</span>eventProbabilities1 <span class="op">*</span><span class="st"> </span>maxNumberOfSubjects1  <span class="co"># intervention</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true"></a>expEventCtrl &lt;-<span class="st"> </span>probEvent<span class="op">$</span>eventProbabilities2 <span class="op">*</span><span class="st"> </span>maxNumberOfSubjects2   <span class="co"># control</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true"></a></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true"></a><span class="co"># cumulative number of recruited patients over time</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true"></a>nSubjects &lt;-<span class="st"> </span><span class="kw">getNumberOfSubjects</span>(<span class="dt">time =</span> time, <span class="dt">accrualTime =</span> accrualTime, </span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true"></a>                                 <span class="dt">accrualIntensity =</span> accrualIntensity, </span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true"></a>                                 <span class="dt">maxNumberOfSubjects =</span> maxNumberOfSubjects)</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true"></a></span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true"></a><span class="co"># plot results</span></span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true"></a><span class="kw">plot</span>(time, nSubjects<span class="op">$</span>numberOfSubjects, <span class="dt">type =</span> <span class="st">&quot;l&quot;</span>, <span class="dt">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true"></a>     <span class="dt">main =</span> <span class="st">&quot;Number of patients and expected number of events over time&quot;</span>,</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true"></a>     <span class="dt">xlab =</span> <span class="st">&quot;Time from trial start (months)&quot;</span>,</span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true"></a>     <span class="dt">ylab =</span> <span class="st">&quot;Number of patients / events&quot;</span>)</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true"></a><span class="kw">lines</span>(time, expEvent, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true"></a><span class="kw">lines</span>(time, expEventCtrl, <span class="dt">col =</span> <span class="st">&quot;green&quot;</span>)</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true"></a><span class="kw">lines</span>(time, expEventInterv, <span class="dt">col =</span> <span class="st">&quot;orange&quot;</span>)</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true"></a><span class="kw">legend</span>(<span class="dt">x =</span> <span class="dv">23</span>, <span class="dt">y =</span> <span class="dv">850</span>,</span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true"></a>       <span class="dt">legend =</span> <span class="kw">c</span>(<span class="st">&quot;Recruitment&quot;</span>, <span class="st">&quot;Expected events - All subjects&quot;</span>,</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true"></a>                <span class="st">&quot;Expected events - Control&quot;</span>, <span class="st">&quot;Expected events - Intervention&quot;</span>),</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true"></a>       <span class="dt">col =</span> <span class="kw">c</span>(<span class="st">&quot;black&quot;</span>, <span class="st">&quot;blue&quot;</span>, <span class="st">&quot;green&quot;</span>, <span class="st">&quot;orange&quot;</span>), <span class="dt">lty =</span> <span class="dv">1</span>, <span class="dt">lwd =</span> <span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>),</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true"></a>       <span class="dt">bty =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true"></a></span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true"></a><span class="co"># add lines with event prediction pre-trial</span></span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true"></a>fa_pred_pretrial &lt;-<span class="st"> </span><span class="kw">exactDatesFromMonths</span>(<span class="kw">data.frame</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(expEvent) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>, expEvent), nevents)</span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true"></a><span class="kw">segments</span>(fa_pred_pretrial, <span class="dv">0</span>, fa_pred_pretrial, nevents, <span class="dt">lwd =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">2</span>, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>)</span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true"></a><span class="kw">segments</span>(<span class="dv">0</span>, nevents, fa_pred_pretrial, nevents, <span class="dt">lwd =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">2</span>, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAJACAMAAAANcPFkAAAA5FBMVEUAAAAAADoAAGYAAP8AOjoAOmYAOpAAZmYAZpAAZrYA/wA6AAA6ADo6AGY6OgA6Ojo6OmY6ZpA6ZrY6kLY6kNtmAABmADpmOgBmOjpmZgBmZjpmZmZmkJBmkLZmkNtmtrZmtttmtv+QOgCQZgCQZjqQkDqQkGaQkLaQtpCQttuQtv+Q27aQ29uQ2/+2ZgC2Zjq2ZpC2kDq2kGa225C227a229u22/+2/7a2/9u2///bkDrbkGbbtmbbtpDb25Db27bb29vb/7bb/9vb////pQD/tmb/trb/25D/27b//7b//9v///9RLNk/AAAACXBIWXMAAA7DAAAOwwHHb6hkAAAgAElEQVR4nO2dDZvjtnWFObPeaWfHceNUWrdN2ngmqZu0XaVtEjurJE3dWXWs4f//PyW+SFDiJ4gLXADnfexdrQheUOQ55AVAkFUNQMFUsTcAgJjAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKBAUDRwACgaGAAUDQwACgaGAAUDQwAigYGAEUDA4CigQFA0cAAoGhgAFA0MAAoGhgAFA0MAIoGBgBFAwOAooEBQNHAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKJaIBDVT02f5331f1syduPayK//uahqn4yXeQ/PtavT9Xd82SJlazdzuW1OkQm2GkjK67fUcNBpo8HEXENIH4vgQFOVcNuqsQPX93O7HBZYiXbDTBWawADzO+0YVx21HCQAg0gLgEEBjhWNx+2RnQR83YDjEUIYID5neanHrogTkQ2QPOzlQHUHmg+7+QXf/6iuvm6/uND9faDLHn7u7+rqi+/Fau9/qaqbn4izhTNIfvVV9Xttzren5sin/3jswpsjqZe9a0s9OevmgU//qBL3P5BnXF6Af+9+cfbtsTH+o9fNAu//Lbd6DaEXVjlD29/bR3GNujLQ6VObs2fvY3pqq3rPzW1fPZ1V6u17DKyXS3VTuuK63pP8lS1akfZkcditBtiHY/rH9LbU96JbAB96C6PpeILvW9VSf1ZL337UexCgblqqn+Jf/YNoBD/PLUfbQNcBbRKfDx2FUu6EHZhoe9+wX7Qnfjjsb8xVgnz/c7Uai27imxXS7XTuuJKtc3CtTvKijwZQ21I3wAXP8TeU/6JaoDbv1dH+9oAu/pPzW/+WqlHtha+Fd+ogt+K0+pO7sLm6/9R0Zqvmp2pyltX82bVW71qo6W/ftarHqo25+wHbM7Opk59dXoWa+vc2A5hF26O8f2zOFEZAVhBm3VufiU3zt4Yu0Sz9t8+/7DX14iPl8v6ka+2kWSnmeLNxt/rGlbtKDvyeIxuQ7rjMfRD2nUIiGuA3zY/a8gA6lxx18n1xlzx1X5sdk1TXJ1Wu2gfzV99Azx2S+u//NcXVVud2eEXAZs6TYnm49vfX2y2CXFVWGyylqkdVBSpzA9oN8YuodY+fvn7Tk0Xy7rIw9X63Wn94mbRuh3Vjzwewy5ujkf/h/T2pX/iGuBjc5T+bagNYNrG1vlanaOkmvTV1262mR6E48UCa9X69Zdq1Z4BrgNajlQJiMxkdTVdCKuwOsdZTTk7qLrA7y42xiphd34YNVnL+pGvt9H/TrOLN58fVbFVO6oXeSqG/buNAfo/pL8vvRPZAM2v+yvrWBrLXx3Ldm/qJPxqF5q+JJlwXhtAfC0O0tt/+cu+b4DrgLa4fvhKLftXFc0OYRU2lbcytYM2/3rQ22NtjFXCiLwtYS27ijywjd53ml1cbFybjC3fUb3IUzHs3z1sgP6+9E5kA6im0PyxtE9m7YVz5RVAxTpfGOA6oH1cmyP7jWiN6VO0HaJ/BZAF7CtAd3mXZ0d7+cXvGLoCXC5zMoDrTuttfZN6/LNcsmpH9SJPxbB/9+gVoNsa/8Q2gGzit3I6VSPH0s6d29Pl9S6cbAOcTOK6u97hdsD+cW14/YV1Zm9DDOYiXRugG9s4yh6NXT36O9Tapx//2mpR9pf12gBdtUQ7rbf1MgO5HLCc3VG9yFMx7A0ZNsCCcaItxDaAvATc687CH55Gj6XVe3Lzdf3DXvUxWLtwvhdIlhBVGOmYXqCLgJa4ZP+MuLx3V4B+CF1Y9dUc7F6gNqhY5/u97rYc/B3N2j95FtcJk4f0l/Uj97eRaqe1xVUL5vHi29kd1Ys8FaO2ftWwAfpb453oBhCXgHur4TVyLCVWr7C6stppYdfxfGEAs2rbpa4UezEO0AVsNd2s9Jt++mmHsAv3tlDQBRW9oFIg96O/w3zf1jqwbNAAVDvNrl9skqp7zY7qRZ6KoemOx/UP6W2Nd6IbQGujfmlaUV/+brRDoxvU/OGXD/rjxeC9HHr8p7q+MMDtH36py4sunLe/lv1pomf97e9VonoZUNUsS3wrx2irH7cDnFaIngFe//Oh+uxrKxtog56s7MfeGKtaPRIsNl3Xai27jNyrlmin9batS0HW7Cg78lQMs1/b43H9Q3pb453cb4eOd5PJAKw2BkhggICw2hgggQECwmpjgAQGCAirjQGS3A0AwCQwACgaGAAUDQwAigYGAEUDA4CigQFA0cAAoGhgAFA0MAAoGhgAFA0MAIoGBgBFAwOAooEBQNHAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKBAUDRwACgaGAAUDTrDGAeD44HnIFMWGWAo3lV5YnonZUABGaNAV6fWtkfR17XUQHAAgoDnPft28pOI0kQmhSABSQGWHIFWBEOADJIDNC0AfQlYLQNAAMAFtAYwLyvbPyFfTAAYAGRAUKHA8ANGAAUDZEBZgfCYADAAqpG8NxAGAwAWIBuUFA0GAgDRYMrACgaDISBosFAGCgajANEJs4tkAUytv8XHyjPh9tLuPSJJ4jSGDsAi4/UquOKgbBljB8YEAYMhEUF+o8NukFjAv1HBwNhEUECFB9cAeIB/TMAA2HxgP4ZgIGwaED/HMBAWCyQALEABogE9M8DGCAS0D8PYIA4QP9MIBoH6G7BwDjAEEiAuEBzBXh9mnssdNnHH/pnA9nNcPc+w+UG9M8GqjbAqXqcXF60AqB/PqARHB4kQIyAAcID/TMCBggO9M8JGCA0SIBYAQOEBvpnBQwQGOifFzBAWJAAMQMGCAv0zwwYICjQPzdggJAgAWIHDBAS6J8dMEBAoH9+wADhQALEEBggHNA/Q2CAYED/HIEBQoEEiCUwQCigf5bAAIGA/nkCAwQCBuAJDBAG6J8pMEAQ0ALmCgwQBOifKzBACKB/tsAAAUACxBcYIADQP19gAHqgf8bAAPTAAIyBAciB/jkDA1CDFjBrYABqoH/WwADEQP+8gQFoQQLEHBiAFuifOTAAKdA/d2AASpAAsQcGoAT6Zw8MQAj0zx8YgA4kQAkAA9AB/ScADEAG9J8CMAAVSICSAAagAvpPAhiACOg/DWAAGpAAJQIMQAP0nwgwAAnQfyoQGeD1qZLcfvQSLjWQACUDjQGO1U59OJkPm8IlB/SfDCQGeH1qZX+8e94cLjmg/3QgMcB5/2g+nkaSoKwlAgOkA64A/oH+E4KqDaAvASW2AdACTgmiXqDzXvUCjZz/MzdA7C0Ay8E4gG+g/6SAATxDnACZAZaRzLJDdkScHueKzZfIHAyEeYb4AvD6dC/+OlVLhGv1xjmXyB0MhPmFOgHSBtB/zQADzINuUL8EMkB9EPv1aHIh8eG+Pr//prr9Tki60XXz38tDVd3998PP900p8fmxblc578W3qsRYP0UZBB4Iq1pWhEsIx99VTdEraV8Bjjcf6peHnfpw3u/O+0bM584A8vPLQ7PwKHLRo/hfr3Lei29vPuAKgCuATxyNPan/QQOIgZZG8rU8w6gPtfri2gDNl/qPx/4q8gsYwHdBQakDYfQXNtO7ILp4mpO4VHHzn1xmtH9hgMe6/aNdxS5VNhgI80iAxE5eAV4exGXgpK8Qjy+ff5DLFhjArAIDGDAO4I8QLRuVAskLqzqd11re9fIrQN0vVTYwgD9CtOx1G+Agm71avF0b4FH/Qyc5VwawVoEBFEQGOFTVvUxXx/ZvhgYI0rOlDSA7fESXjrSC+NAskGp+fbp7bva8NsCub4B2lc4As0PKmUPUCG4Oz6G6705O28IlQZiuXTMOIIcaj2asXY8DyNO5aH79XJ/bD2IcwDaAWaXNlg4YB/BdsNbdoCrfLKcbNNehjcyhGwhTQ2DFzAiD/tMEVwA/ZDu2nTvEbQBrTHhDuASA/hMFvUBegP5TBeMAPkAClCwwgA+g/2SBATwQUv+HauYuK4vr+Y7tvRDrV7U3QTbsxgeSzb0Z3YelocPjYAAxuHXcOpEiJwMETYAOy/f7gDyXGmDqFomXz/9B9m0vMMDa0BFwMEBzCMTtiIclk/K215sAQROg+AY43v72QQ05l2kA8QPEnOyxIS7P9fInbAOgM8BR3tKwe/n8Vw/WzMhuiqSe72h/efONMYD6Vin1JOeMXU+VFH9ed+O9Pt2r+zEsA+iS5gaLl4efqU1q77643Krh0DFwM8BBz7ALUC97fCRAb6boF+0MIMZYjlJL6ow0MEXS/lIcs1OlDaC/VUpuQg5NlZTqvX78xEnffWcZwJTsDKDDmfvvLrdqJHQMXFKge3Ev4nmPFEhCrf9LA1Ttg4FOt9+91+ISThiYImnNm1Qn+4MyQPutvooMTpUcucQf5MTjnW0AU7IzgNwkWengVm3LHrzi1AhuziPLnsvhoV7uhO4BtdsAcrC9TWMGp0i2X+pbs5QBelMj7VX702mGZKrEfVB3lGoDmJKdAfQm2bMw7a0aDh0FdINuJKYBZBKhJkQKFQ9NkWy/PPYMYL4VXRlNxOGpkoND+cd2VasNoEu2BpAb0Pxpz8LsTdycvEsgKA5tgPfqh6ARLAg+BGYZ4PXpp80x6AwwNEWy/XLgCqC+/s4udTVTTOdMbUO2nZBzf9kLZE2zub4CXGyVHToy7gZAI7iOcQ+EZYDj3f8+7UxOItoAA1Mk2y+V/o6mDWCEe97/1MyPaRfYyr7stDx1regLA5j5ZTLb0c2S/izMXT8ij/7QtQYwbbBqwfNZvdTLm/D3QHQG0K1J2eXS9gL1p0juLr7s9QKpU7BsRwxOlZRavxw4MNU3GrcawbqkmY7ZbpI9C9PeqsHQcXC/AgSqlzUR7gEyZ6CbD0KLjaBUp7sU4sUUSTXf0f6yPw6gkqLeqr2pkidZTa/2bojrIHIncxI3JfV0zHaT7FmYva0aCB0JNII3wOIm0Mlh18hw3jaNgwFmH33utV7OcNA/a5GZnh/GuAyE+ejD5SCdrbDQP2cDqPYFb1xuhfDxKBkW2tkIDwOATbjdCxSwXr5A/zmw3gBbb4JYWS9bWLSAwVYc2gBe7uJLXzzQfxa4pEAVeoGg/1zAOIAb0RKg+HOCZTf4cPVXa/G43WEKGMCJeA2A6FMi1Ut/Bu9ku14rTwM0SdDd82FbZ2jyBohVc2wD6GEHcdvPgrWyNECzE9v5R/T1siRiAyD2nGDzsNf/UzcSXa31vXhX68duSX4G0FNRS74d2ncC9G6SftnIc4J7neAnOQnmvreWfHWHtSQ/A4jfJAxQ7oSYqCMAkecE2xd+9eTjkxC+/VqmXW9JfgYwV4AVyeiWehkStQc08pxg2wCqnqu1Hi+XsMa5DXDcNhyWsAHijgBEnhNsp0AvvedjXRtg/MlZjHDsBdo8nSFdA0S+BSLynOC2EXyqHku9AoStlxuxbwGKPCfY7gbtZ/q2AbJuAwSulxuxb4GIPCdYD4S9PsmFdl+PXktJPu9eoJLvBo2t/8hzggUyA1Y2tHv79Vrf63ny+Y4DyEOweUJzbB05EjsBGoDxjLAUcEuBZK9Bic8G5ad/GGAbzm2A16cCB8IY6h8G2AauACtgmACBjbiMBBfbBoD+8wO9QMuB/jME4wDLgQEyBBNiFsND/5GnRNoBlr/v9PTIdkQAE2KWwqQFHHlGmBVguaS5il+ACTFL4aF/GMAzmBCzECb6jz0lUt7gZpVpV3z/jS48Eu17fY+QvSDE/poDE2KWQZoAfZqkXzbylEhpgK5M3a0o7g6diCZLX86hpNuli8GEmGVwuQDEnhI5NAGyXXEqmvj/ag5liB02AybELIKN/mNPiby4+/9qxYloj9dzKGl31SIwDrAIngaIMCXy0gC9FaeidQaw5lCG2WWTEBlg9i0ybAS1CD76jz0lcvAKYFacilbWFeBoXiF5GnuXJB9FLYDJEIAk/mtSryZAduUmol20AfI2gPqhkuNIXxEfRS2Akf5jT4k89cv0V5yKdtELlLcBrJ82NlrASFKzcNJ/7CmR9unbDn82MyHHol2MA6RqgMGegSvyugJwSoAG4NGbmCyrrwCiD3TWBO0gQQ5tAN76hwG24ZQCzZvAvEZmdLSYt6hsmOsfBtiGcxtgWTK0vd7YME+AwEYwEDYD9J83GAibBvrPHAyETYIEKHcwEDYJ9J87gQfCqpYV4eKRyGYCdxwMIAa2j5OzsnO5AqTiU+COy8NxxSyke3Hr6yiZDIRB/1nwRjKy0G1OsLjlY3JOcBYDYdB/8rzpGCnhZgAxvzT7p0IgAUqcOe1LXFKgezEDeuMTEhPQFvSfMEu0L3FqBFc3H3ovTL5GXCLE0zBGZw7zFxf0nyyL1V9TDYQdzFS90Xu+2asLCVCirBC/wKEN8F6d1ScawXKukOolSrYbFPpPkDWnfo27ASYawd38z2RnhEH/yeGg/nq9AQ7dWO7Ew3HF2f+Y9BUABkiJRf09w7hfAaYQkwXkJWD0YazM9QX9p8J8T/80VPMB9MORRruKeAsMLeA02KZ9iYMBZu/191pvFKB//mzXvsRlIGyT8tfWGwPonzue1F+73Qqx7eVIK+uNABIg3ngTv8DtXqCA9UYA+ueLv1O/Zr0BZm6C8F1veKB/rnhXf+3UBrh8aQhtveGBAVhCIH6BSwpUZd0LBP3zg+LUr8FzgS5AC5gbhOqvYYAroH9WkIpf4GKAnN8UD/3zgfbUr3FpBGf8pngkQFwIov7arRs04zfFQ/8sCCR+gdtAWK5viof+4xPq1K9xvwJk+KZ4JECxCaz+ekMbIMc3xUP/UQkufoFjL1CWb4qH/uMR/tSvwThACxKgWERTfw0DWED/UYgofgEMYID+wxPz1K9ZaYDzfpfpzXBIgELDQP01rgAt0H9QWIhfQPJkOJ/1BgL6DwePU7+G5MlwPusNAxKgULBSf031ZDiP9YYB+g8CM/ELaJ4M57HeIED/9HA79WvQCK6RANHDVP21kwFMP2g+bQDonxS24he4PBnu7vl4X788ZHMzHPRPB99Tv8btyXAnMSEmm9uhYQAi2Ku/dp0Q8/Kjj/L/APXSA/2TkID4BW4TYkRPUC4GQAuYgjTUXzu1AcQI2GGXTQoE/XsnGfXXbt2gh3vRE7TtIelsVAf9+yYl+WMcAAmQX9JSfw0DQP/+SKHT5wrnOcGbWgBsDAD9+yJJ9deuT4Vo/jxumxXPRHgwgBcSFb/ApRtUDQHn8Fwg6N8H6aq/LnxCDFrA20la/fWWK0AG4wDQ/1ZSl79bG0A+Ey6DJ8NB/9tIX/21271A3aQw9yyIgfaQAG0g1U6fKwoeB4D+XclG/XXJBoD+3chI/IJiDYAEyIm81F8XbYDYW5Ae2am/LtcA0P9qcpS/w7NBH7N4LAoSoJXkqf7a6eG4eRggbv1JkVOnzxVrU6DjskGA16eZMnEFCP0vJmv111RPhjua5yaexh6gGFWBSIAWkrn4BSSNYDFvXjN2x1BkA8SsPRnyV3/tZoCXh5mX5Iknp2jG7hmNKUHofwFFqL92vBlOnN+nbobjfQVAAjRPKfJ3fS6QYOp26NYdHNsA0P8M5ai/dn0ynGByQoy5ZXTUJPFECP1PU5T8qa4AHuv1DRKgKQpTf03UBvBZr2+g/3HKkz9RLxDjgTDof4wS1V9T3QzHdyAMBhimUPkXNxAG/Q9RrPprIgOMD4R1dxKtCOcPtIAHKFn+pV0BoP9LylZ/TdcGYDkQBv33yP1Gz0W4jwNMwnIgDAmQBdSvcB8JDlSvR6B/A8Tf4jIQtu3dMCvr9Qf0r4H6LTY8GW7eBxPvEoYBIgH19yHqBp2dOBlejNB/DflfQ9MLpDt/OF0B0AKG+odwMUBzgr97Pkz2BZ33ov+HlwFC18gMyH8Ql0bwzYfj3fN5P90berj5wMkAhesf6h/DbRxAjO8eZxrBx2rHxwBlJ0CQ/zhu4wDCALO9oS8PnzEyQNj6GAH1T+J+BZh/Sd7r0/ikmbCCLFf/kP8Mzm2ApGaEFWoAqH8ex16guRlh/ur1QZn6h/yXUMLj0YtsAUP9yyjDAAEr4wHkvxTnFGjTQ1GCGqA8/UP+y3F6LIp8T/C2RkA4URaXAEH+a3CfEDPfDeql3s0Upn/Ifx1Ej0b0V+9WitI/On5W43IFuJd/J/JoxIIMAPk74PxoxFMabYBi9A/1u7HSAAumuniudxultIAhf1cyHwcoQ/9Qvzt5G6AI/UP+W3AwgEmD+KdAJSRAkP82XHqBNg4Cr6t3UyXZ6x/yX8A7ycjCnB+Mlb3+If9p3k1KX0H0aMTl4ejIPQGC/CeYV77GoQ3w8vm2qQDr6t1QRdb6h/wHebfkrG/jYoCHJBrBWesf8r9krfAN7rdCbINcnTknQJB/Dzfla7JtBOerf8hfszrdGSLXRnC2+i9e/u/eeRG+gV0j+PLFDa7/rjzHY/LvguXvU/YdpI9Hd6j3zcABx7/Nv0uVP4XyNXneC5RnAvSmOP17TXaGydIAefYAlSR/euEbuKVAXshR/8XIP5TyNc5XgI1vCqOUaIb6LyP7Cax9iXsKdNg0Hkao0fwSoALkH0P7EncDsH0qRG76z1r+AZq507gbYO4FGZ7qXR85L/335J+REWIL3+BsgPOeaQqUlQEuzv55GICH8jXuvUDb5oWRqTQn/V8lP2kbIHq6M0Ru4wA5tYCvc/9EDRBf+J8+fRpZkp8BiAIHZ6jpm54BYitfan9U/XV2D8bKRv/DXT9JGSCy9j9pZoo5XwEO1aa7ommEmk0CNNLzmYoB4mn/06eFwjc4GqC5EmybFkNlAJKwoRnt+E/AALG0v072HW4GOG3Lf9bUuypoFvqfGPjibYCo2ndd2ckAx60vSIIBRklw3DdW9+bKZGcYBwO8Pm1L/9fVuyZm+vpPS/5RhL86y5/GaSDMw6x4Aq2m3wJOSP7xlO856moDbE//19W7ImTi+k9F/rG0TxN6rQGOlY+nAlEYIHH9JyH/0Nr3muwMk81AWOIJEHv5h9U+vfAN2dwKkbT+ecs/gvaD1ZaNAVLW//LsJ7hNAmo/QLozRCYGSDkBWnH6D2mAMNr33Km5HiIDvD7NtBO8G8BvvHCsyn4CGSCE9uPKvoPGAEczVHYaGzPzK9hk9b+y74feAMG0T1zHYkgMYD0/d+x98l4Vm2wCtLbxS2qA4rQvITGA9QT1sWdHeDaAz2jBWN/3Q2WAMrUvyeEKkKb+XUa+CAxArv3Ijdw5qNoA+hIQog2QZgLk1PXv1wDE2uctfANRL9DsoyO8GsBfrFA4jnx5M0AI7dOF90n64wAJ6j/qfT+U2mee7gyRvAESTIDiyZ9M++kJ35D8QFhy+o8lfyrxp6p8TeoDYanpP1L2QyP+xLUvSbwbNLUEKIb8SU79OWhfEnggrJtNsCLc1FYlpf/g8vff4E2wmTtN2leApPQfNvvxrf3chG9IeyAsJQP4kP+yCCTa9xiPFUkPhCWkfz9n//kY0P5KUh4HSKcF7Cv7mQ7iV/z5a1+StgE8BAmBt+R/Iow38WfXzJ2GyADH5uwsmwFjbxLzoN1U9O+x7TsSyM+pvyzhG4gawTcf9EvE6AyQSALkte/nOpKfBm+JytcQdoO+PjVNYEoDbA5Bj+euz34saN8DpANhh7tnMgOkoH/vPf9dNB/iL137EtqBsMN9wQYgGPjS8baLH9o3ELUBtOzP+7H7QbfKl73+ycZ9t6of2u9B1gukkqDXJxoDcG8BE8l/Y+ID7V+T6DgAb/3TyH+T+KH9EdI0AGv9k8h/g/qh/SmSNADnBIhA/u6JD7Q/S6IG8LUZvvEvfyfxF3Y7wxZSNABb/XuX/3r1Q/grSdAAbBMgv/IfSnym40P6DiRpAH+b4RGv8h859U/UAPG7kZ4BeOrfZ/YznviMVIFTvzvJGYBnAuRN/tM9PteVIOXfSIIG8LkZfvAl/9k2b68aaN8HqRmAof49ZT9LenxMPdC+NxIzAL8EyIv8lw51NTVB+35JzgB+N2MrPuS/uLP/06c3b6B9z6RlAGb69yD/pepX533Or9NOlKQMwCsB8iL/JaWQ9BCSmAH8bsQG3myX/7KTP8RPS0oGYKP/N17kP18Gp356EjIAlwQoyMkfnT2BSMoAfjfBie3qn+/yhPYDko4BOOh/s/whfm7AAMsJof4N4YELyRgguv63yX9R4rNgG5w3AAyTigFit4A3yd9b4gMDeCcdA/itfx1b5O8z8YEBvJOIAWLqf0PLdzbxWdnmhQG8k4YBIiZA7vKfEb9LTz8M4J1UDOC39qVQqd+1sxMG8E4SBoikf1f5Tyc+W3r6YQDvwAAjbFD/xNKNPf0wgHdSMEAE/TvKn+zUr4EBvJOAAYK3gN3UP5X44NY2tiRhAL9Vz+Ak/xnxb9wkQAd/AwTVv2f1Q/zsYW+AkAmQg/wnEh+IPwUSMIDfikdxU//IEpz6U4G7AULpf7X8R0/9aPAmBXMDhEmA1qn/3ejb2aH99GBvAL/VDrFG/pHP+xgH8A5vA9Drf4X6J8Xvc5vGgQG8w9oA5AnQcvnHF78ABvAOcwP4rbTPYvVPnfr9btIcMIB3OBuAVP/L5D/a3o3T0QkDeIexAQgToEXqn+zridPZAwN4h7UB/FbZskD+I+KP3c8JA3iHrwGI9L9M/ddfxta+BAbwDlsDUCRAb+afajt06mehfQkM4B3GBvBb4bz6hxq8fLQPaOBqAM/6nxH/lfY/fYrY1AUBYWoAnwnQ9Kn/QvsQfmGwNYCneqbUP6R9T9WCVOBpAE/6Hxc/tA8U2Rpg9NQP7QMLlgbYrP8R9dvaRzMXCDgaYFML+M2w+Dvtpyx8jAN4h6cB3GK+eTOo/gvtu8XmAQzgHYYGcNH/kPbfvTOTF7NJd2AA7/AzwNoE6EL771o+fcpG+AYYwDscDbBk/Td9spZ9BwzgHSIDvD5VktuPa8NN6r9M2XfAAN6hMcCx2qkPJ/NhcbgBA5Qu+w4YwDskBnh9amV/vHteFa6aF3txskg02WIAAAYDSURBVO+AAbxDYoDz/tF8PPWToKplZNUhnZcp9iFgAO9wuwIAEBSqNoC+BKxvAwAQEqJeoPNeJToj538YADCB3zgAAAGBAUDRwACgaGAAUDQwACgaGAAUDQwAigYGAEUDA4CigQFA0cAAoGiiGQAAFkQyQMxqgvyUXH4I6vAVgE81MADqiBCATzUwAOqIEIBPNTAA6ogQgE81MADqiBCATzUwAOqIEIBPNTAA6ogQgE81MADqiBCATzUwAOqIEACAlIEBQNHAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKBAUDRwACgaGAAUDQwACiaEAY4VdXNB9IaXn70kbgi+YrwHXElRxOado8d5Buu6OpQL9K6J62jfnlQVWytI4ABTs32nUgdcN7Lt7YSVvT61MQ9ij1OWMmx+RUyNO0eO8lXvBHW8fK5DktYx6n5Dee9h+NBbwD1ctXDPV0NzTlAGICyopcH8X7MRqGElZz3O/Ej7on3WHN+bsRDWYd5iTRhHSq0j+NBb4BWO1QVnKqd3OXkFYkzDXUlwgC0dRzvftEYgLKOo5YjYR3tRWZzHQEMILf1RKhLHZ2+osPtR+pKjs3VnLSOJrhoA1DWcfgb1V4irON0+93eTx30BlAJGm0jQO4A8orE68FpKznJg0pZh0gZhAEI6zjvRRvjQLqvjiLpFVfLzXXAAMsrMW1gykpen+6eKes4NuIkNoCiOSSUBrj54KkOpECL65C9oOS/RrQz6OqQoalTIFXTwyNhHSrp91FHBo3g2hiAtu2oRgHIf404qHR1HPXDwynrUDTKJKxDKd5HHTl0g+r9QVrRsXqUfxNWoo7libSrVXKg7QYN8TvOe191ZDEQpk8IlGM7DztTFV0lrTCJ99iBeCBMyvFA+zuOvvZViFshjuS3QugckK4inTqI6IS/5iCSE10d+a0Qif+Ok7k1ZWMduBkOFA0MAIoGBgBFAwOAooEBQNHAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKBAUDRwACgaGAAUDQwACgaGAAUDQwAigYGAEUDA4CigQFA0cAAoGhgAFA0MAAoGhgAFA0MAIoGBgBFAwOsQ70CtOH2u/3jVMGjfnTlBKdHE9OKdL4Ie7qqpf3m9WlyC1TRy3jn97SPaU0NGGA97RvaJpCvfJwrMqTfi2+vC3XfHOceCi6KXgU4yUfjAg0MsJ5lBpg7O282wHwVgwaYv24UBQywHmUAoayXh5+LlxWKt5bLF5WYR3bL95jffvf+G/EuN/0g74uyssjd96KISqb0M8WNYMVi8SKXSrzV1yxrSgvUOVw8E/4iqK7qvBffqpW/3/9MLVQBa/VofWCAAdZjG0C+QL5RonhJj3zFqX6Thjr5yjdRVI/yneb9snYRqXnxVgkRQBtAvmalWfVimSktEN/2g5qqznvx7c0HVYP6bAJSv68wNWCA9dgG2NXmj0eV9p9sde/MO5XkK7atsr0i8oNom4oFWt/mtW8Xy3bdJUL+oxe0rUovemxraD5375HT1QMJDLAe2wCPdfuHOrP21G2Wtq++6/6wihhJn6qqNcB53xmpv6wzQC9e+3I9LXyx3K7BBFzUPi8IGGA9YwYwb2Cs6ysDNB9nDNC0H25/210BmitH1Wq+t6xrJAwbQAv/0gAmIAzQBwZYz+QVQLP2CtAusHttDiqN7y9zvAKYgDBAHxhgPSMGuBrPkl9YbYApA6h33Vd9A2gN95ddtAGsoFYbYMQAliWBAgZYz4gBZEeNOsnaXfBdL9CVAXb9K8B5X+3aRrAIo9uz/WXtCVz1AtlBu14gY4CuBhMQvUB9YID1jBlAjgPYvTday2Yc4MIA9UH00lttgJsPOucxa0lDVXfP/WWH3jhAL2g7DqCj2jWYgBgH6AEDJMuCwWaPq+UKDJAus/cCDYJ7gXrAAOnidFcP7gbtAwOAooEBQNHAAKBoYABQNDAAKBoYABQNDACKBgYARQMDgKKBAUDRwACgaGAAUDQwACgaGAAUDQwAigYGAEUDA4CigQFA0cAAoGhgAFA0MAAomv8Hjv/TCEQfI6kAAAAASUVORK5CYII=" /><!-- --></p>
+<p>For the design, we assume there is no interim analysis, implying that we need 299 events using the specified parameters.</p>
+<p>We simplified the specification of the underlying piecewise exponential hazard function somewhat, so that at the time of the CCOD below we have already data on all stretches of the piecewise exponential hazard. Otherwise, it would be impossible to accurately estimate <span class="math inline">\(S\)</span>.</p>
+<p>Now assume this trial is running. To generate an illustrative dataset we simulate based on the above assumptions as follows:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a>seed &lt;-<span class="st"> </span><span class="dv">2020</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="co"># generate a dataset with 1000 patients</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="co"># administratively censor after 100 events</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="co"># number of events after which to administratively censor</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>nevents_admincens &lt;-<span class="st"> </span><span class="dv">100</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="co"># generate a dataset after the interim analysis, administratively censor after 100 events</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>trial1 &lt;-<span class="st"> </span><span class="kw">getSimulationSurvival</span>(design,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>    <span class="dt">piecewiseSurvivalTime =</span> piecewiseSurvivalTime, <span class="dt">lambda2 =</span> lambda2,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>    <span class="dt">hazardRatio =</span> hr, <span class="dt">dropoutRate1 =</span> dout1, <span class="dt">dropoutRate2 =</span> dout2, <span class="dt">dropoutTime =</span> douttime,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a>    <span class="dt">accrualTime =</span> accrualTime, <span class="dt">accrualIntensity =</span> accrualIntensity,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a>    <span class="dt">plannedEvents =</span> nevents_admincens, <span class="dt">directionUpper =</span> <span class="ot">FALSE</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a>    <span class="dt">maxNumberOfSubjects =</span> maxNumberOfSubjects, <span class="dt">maxNumberOfIterations =</span> <span class="dv">1</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a>    <span class="dt">maxNumberOfRawDatasetsPerStage =</span> <span class="dv">1</span>, <span class="dt">seed =</span> seed)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a>trial2 &lt;-<span class="st"> </span><span class="kw">getRawData</span>(trial1)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a><span class="co"># clinical cutoff date for this analysis</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a>ccod &lt;-<span class="st"> </span>trial2<span class="op">$</span>observationTime[<span class="dv">1</span>]</span></code></pre></div>
+<p>Assume that after 100 events we clean the dataset and want to predict the timepoint when the final number of 299 events happens. This cleaning milestone is reached after 14 months. The generated dataset looks as follows:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="kw">kable</span>(<span class="kw">head</span>(trial2, <span class="dv">10</span>)[, <span class="dv">3</span><span class="op">:</span><span class="kw">ncol</span>(trial2)], <span class="dt">row.names =</span> <span class="ot">FALSE</span>)</span></code></pre></div>
+<table style="width:100%;">
+<colgroup>
+<col width="8%" />
+<col width="10%" />
+<col width="12%" />
+<col width="11%" />
+<col width="10%" />
+<col width="13%" />
+<col width="17%" />
+<col width="5%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">subjectId</th>
+<th align="right">accrualTime</th>
+<th align="right">treatmentGroup</th>
+<th align="right">survivalTime</th>
+<th align="right">dropoutTime</th>
+<th align="right">observationTime</th>
+<th align="right">timeUnderObservation</th>
+<th align="left">event</th>
+<th align="left">dropoutEvent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">0.0238095</td>
+<td align="right">1</td>
+<td align="right">64.9008011</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.9732632</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">0.0476190</td>
+<td align="right">2</td>
+<td align="right">20.5623950</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.9494536</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">0.0714286</td>
+<td align="right">1</td>
+<td align="right">59.7432789</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.9256441</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="right">0.0952381</td>
+<td align="right">2</td>
+<td align="right">27.8982841</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.9018346</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="right">0.1190476</td>
+<td align="right">1</td>
+<td align="right">7.1265000</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">7.1265000</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="right">0.1428571</td>
+<td align="right">2</td>
+<td align="right">2.7904861</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">2.7904861</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="right">7</td>
+<td align="right">0.1666667</td>
+<td align="right">1</td>
+<td align="right">6.8596179</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">6.8596179</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="right">8</td>
+<td align="right">0.1904762</td>
+<td align="right">2</td>
+<td align="right">20.4710395</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.8065965</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="right">9</td>
+<td align="right">0.2142857</td>
+<td align="right">1</td>
+<td align="right">0.1379221</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">0.1379221</td>
+<td align="left">TRUE</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="right">10</td>
+<td align="right">0.2380952</td>
+<td align="right">2</td>
+<td align="right">43.9063079</td>
+<td align="right">NA</td>
+<td align="right">13.99707</td>
+<td align="right">13.7589774</td>
+<td align="left">FALSE</td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+<p>The dataset <code>trial2</code> contains simulated event times <em>and</em> accrual times for <strong>all</strong> patients, i.e. also those patients that have been accrued <em>later</em> than 14 months. This means that by the timepoint our event prediction happens in reality these patients would not have been recruited yet. In our dataset, these are 413 patients. In our event prediction, we need to take this into account. The dataset is therefore reorganized as follows:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="co"># generate a dataset with PFS information:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="co"># - blinded to treatment assignment</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="co"># - remove patients recruited *after* clinical cutoff date</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>pfsdata &lt;-<span class="st"> </span><span class="kw">subset</span>(trial2, <span class="dt">subset =</span> (timeUnderObservation <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>), </span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a>                  <span class="dt">select =</span> <span class="kw">c</span>(<span class="st">&quot;subjectId&quot;</span>, <span class="st">&quot;timeUnderObservation&quot;</span>, <span class="st">&quot;event&quot;</span>))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a><span class="kw">colnames</span>(pfsdata) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;pat&quot;</span>, <span class="st">&quot;pfs&quot;</span>, <span class="st">&quot;event&quot;</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>pfsdata[, <span class="st">&quot;event&quot;</span>] &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(pfsdata[, <span class="st">&quot;event&quot;</span>])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a><span class="co"># define variables with PFS time and censoring indicator</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a>pfstime &lt;-<span class="st"> </span>pfsdata[, <span class="st">&quot;pfs&quot;</span>]</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a>pfsevent &lt;-<span class="st"> </span>pfsdata[, <span class="st">&quot;event&quot;</span>]</span></code></pre></div>
+</div>
+<div id="estimate-s" class="section level2">
+<h2>Estimate <span class="math inline">\(S\)</span></h2>
+<p>With this we can now estimate <span class="math inline">\(S\)</span> based on the patients already accrued and using the hybrid model. First, let us plot the estimated piecewise constant hazard functions together with a kernel estimate of the hazard function of the 587 patients that already have PFS data, either with an event or censored:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="co"># analyze hazard functions</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>oldpar &lt;-<span class="st"> </span><span class="kw">par</span>(<span class="dt">las =</span> <span class="dv">0</span>, <span class="dt">mar =</span> <span class="kw">c</span>(<span class="fl">5.1</span>, <span class="fl">4.1</span>, <span class="fl">4.1</span>, <span class="fl">2.1</span>))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a><span class="kw">par</span>(<span class="dt">las =</span> <span class="dv">1</span>, <span class="dt">mar =</span> <span class="kw">c</span>(<span class="fl">4.5</span>, <span class="fl">5.5</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a><span class="co"># kernel estimate of hazard function</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>h.kernel1 &lt;-<span class="st"> </span><span class="kw">muhaz</span>(pfstime, pfsevent)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a><span class="kw">plot</span>(h.kernel1, <span class="dt">xlab =</span> <span class="st">&quot;time (months)&quot;</span>, <span class="dt">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="dt">col =</span> <span class="kw">grey</span>(<span class="fl">0.5</span>), <span class="dt">lwd =</span> <span class="dv">2</span>, </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>     <span class="dt">main =</span> <span class="st">&quot;hazard function&quot;</span>, <span class="dt">xlim =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="kw">max</span>(pfstime)), <span class="dt">ylim =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="fl">0.06</span>))</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true"></a><span class="kw">par</span>(<span class="dt">las =</span> <span class="dv">3</span>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true"></a><span class="kw">mtext</span>(<span class="st">&quot;estimates of hazard function&quot;</span>, <span class="dt">side =</span> <span class="dv">2</span>, <span class="dt">line =</span> <span class="dv">4</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true"></a><span class="kw">rug</span>(pfstime[pfsevent <span class="op">==</span><span class="st"> </span><span class="dv">1</span>])</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true"></a><span class="co"># MLE of exponential hazard, i.e. no changepoints</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true"></a>exp_lambda &lt;-<span class="st"> </span><span class="kw">sum</span>(pfsevent) <span class="op">/</span><span class="st"> </span><span class="kw">sum</span>(pfstime)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true"></a><span class="kw">segments</span>(<span class="dv">0</span>, exp_lambda, <span class="dv">20</span>, exp_lambda, <span class="dt">lwd =</span> <span class="dv">1</span>, <span class="dt">col =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">1</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true"></a><span class="co"># add estimated piecewise exponential hazards</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true"></a>select &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true"></a><span class="kw">legend</span>(<span class="st">&quot;topleft&quot;</span>, <span class="dt">legend =</span> <span class="kw">c</span>(<span class="st">&quot;kernel estimate of hazard&quot;</span>, <span class="st">&quot;exponential hazard&quot;</span>, </span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true"></a>                             <span class="kw">paste</span>(<span class="st">&quot;#changepoints = &quot;</span>, </span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true"></a>     select, <span class="dt">sep =</span> <span class="st">&quot;&quot;</span>), <span class="st">&quot;true hazard&quot;</span>), <span class="dt">col =</span> <span class="kw">c</span>(<span class="kw">grey</span>(<span class="fl">0.5</span>), <span class="dv">2</span>, <span class="dv">3</span><span class="op">:</span>(<span class="kw">length</span>(select) <span class="op">+</span><span class="st"> </span><span class="dv">2</span>), <span class="dv">1</span>), </span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true"></a>     <span class="dt">lty =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="kw">rep</span>(<span class="dv">2</span>, <span class="kw">length</span>(select)), <span class="dv">1</span>), <span class="dt">lwd =</span> <span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">1</span>, <span class="kw">rep</span>(<span class="dv">2</span>, <span class="kw">length</span>(select)), <span class="dv">2</span>), </span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true"></a>     <span class="dt">bty =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(select)){</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true"></a>  pe1 &lt;-<span class="st"> </span><span class="kw">piecewiseExp_MLE</span>(pfstime, pfsevent, <span class="dt">K =</span> select[i])</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true"></a>  tau.i &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>, pe1<span class="op">$</span>tau, <span class="kw">max</span>(pfstime))</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true"></a>  lambda.i &lt;-<span class="st"> </span><span class="kw">c</span>(pe1<span class="op">$</span>lambda, <span class="kw">tail</span>(pe1<span class="op">$</span>lambda, <span class="dv">1</span>))  </span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true"></a>  <span class="kw">lines</span>(tau.i, lambda.i, <span class="dt">type =</span> <span class="st">&quot;s&quot;</span>, <span class="dt">col =</span> i <span class="op">+</span><span class="st"> </span><span class="dv">2</span>, <span class="dt">lwd =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true"></a>  <span class="kw">segments</span>(<span class="kw">max</span>(tau.i), <span class="kw">tail</span>(lambda.i, <span class="dv">1</span>), <span class="dv">10</span> <span class="op">*</span><span class="st"> </span><span class="kw">max</span>(pfstime), </span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true"></a>           <span class="kw">tail</span>(lambda.i, <span class="dv">1</span>), <span class="dt">col =</span> i <span class="op">+</span><span class="st"> </span><span class="dv">2</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true"></a>}</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true"></a></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true"></a><span class="co"># since we simulated data we can add the truth</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true"></a><span class="kw">lines</span>(<span class="kw">stepfun</span>(piecewiseSurvivalTime[<span class="op">-</span><span class="dv">1</span>], lambda2), <span class="dt">lty =</span> <span class="dv">1</span>, <span class="dt">col =</span> <span class="dv">1</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>As a next step, we perform the sequential testing for detection of a changepoint, starting from an estimated hazard with <span class="math inline">\(K = 5\)</span> changepoints:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a><span class="co"># starting from a piecewise Exponential hazard with </span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a><span class="co"># K = 5 change points, infer the last &quot;significant&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a><span class="co"># change point</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>pe5 &lt;-<span class="st"> </span><span class="kw">piecewiseExp_MLE</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, <span class="dt">K =</span> <span class="dv">5</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a>pe5.tab &lt;-<span class="st"> </span><span class="kw">piecewiseExp_test_changepoint</span>(<span class="dt">peMLE =</span> pe5, <span class="dt">alpha =</span> <span class="fl">0.05</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a>cp.select &lt;-<span class="st"> </span><span class="kw">max</span>(<span class="kw">c</span>(<span class="dv">0</span>, <span class="kw">as.numeric</span>(pe5.tab[, <span class="st">&quot;established change point&quot;</span>])), <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a><span class="kw">kable</span>(<span class="kw">subset</span>(pe5.tab, <span class="dt">select =</span> <span class="kw">c</span>(<span class="st">&quot;k&quot;</span>, <span class="st">&quot;H_0&quot;</span>, <span class="st">&quot;alpha_{k-1}&quot;</span>, <span class="st">&quot;p-value&quot;</span>, <span class="st">&quot;reject&quot;</span>, </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>                                 <span class="st">&quot;established change point&quot;</span>)), <span class="dt">row.names =</span> <span class="ot">FALSE</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="right">k</th>
+<th align="left">H_0</th>
+<th align="right">alpha_{k-1}</th>
+<th align="right">p-value</th>
+<th align="right">reject</th>
+<th align="left">established change point</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2</td>
+<td align="left">lambda1 - lambda2</td>
+<td align="right">0.0250000</td>
+<td align="right">0.3913751</td>
+<td align="right">0</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="left">lambda2 - lambda3</td>
+<td align="right">0.0125000</td>
+<td align="right">0.0098730</td>
+<td align="right">1</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="left">lambda3 - lambda4</td>
+<td align="right">0.0062500</td>
+<td align="right">0.0023362</td>
+<td align="right">1</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="right">5</td>
+<td align="left">lambda4 - lambda5</td>
+<td align="right">0.0031250</td>
+<td align="right">0.0943560</td>
+<td align="right">0</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="right">6</td>
+<td align="left">lambda5 - lambda6</td>
+<td align="right">0.0015625</td>
+<td align="right">0.0408903</td>
+<td align="right">0</td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+<p>Proceeding in the sequential fashion as described above no changepoint can be established based on this data. This, because we do not reject the first null hypothesis and thus the procedure stops, eventhough the <span class="math inline">\(p\)</span>-value for <span class="math inline">\(k = 3, 4\)</span> are smaller than the corresponding local significance levels. The implication of this is that we do not select a changepoint, i.e. no hybrid exponential model, but simply estimate <span class="math inline">\(S\)</span> based on a constant hazard, i.e. a simple exponential model.</p>
+</div>
+<div id="prediction-of-the-timepoint-of-the-fa" class="section level2">
+<h2>Prediction of the timepoint of the FA</h2>
+<p>The selected estimator for <span class="math inline">\(S\)</span> is the one without changepoint. With this estimated survival function we can now proceed and predict the timepoint when the targeted 299 events happen. To this end we will compute predicted events on a monthly grid. For illustration we also plot the estimated piecewise exponential survival functions with <span class="math inline">\(K = 5\)</span> changepoints and provide the predictions based on that estimate of <span class="math inline">\(S\)</span>.</p>
+<p>Note that for the prediction we now also include those patients that will only be accrued <strong>after</strong> our CCOD, as discussed above.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a><span class="co"># projection for patients to be recruited after CCOD</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a><span class="co"># 42 patients / month, and we have maxNumberOfSubjects - length(pfstime)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="co"># left to randomize. Assume they show up uniformly distributed</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a><span class="co"># this accrual is relative to the CCOD</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a>accrual_after_ccod &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span>(maxNumberOfSubjects <span class="op">-</span><span class="st"> </span><span class="kw">length</span>(pfstime)) <span class="op">/</span><span class="st"> </span>accrualIntensity </span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a><span class="co"># Kaplan-Meier and hybrid Exponential tail fits, for different changepoints</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a><span class="kw">par</span>(<span class="dt">las =</span> <span class="dv">1</span>, <span class="dt">mar =</span> <span class="kw">c</span>(<span class="fl">4.5</span>, <span class="fl">4.5</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true"></a><span class="kw">plot</span>(<span class="kw">survfit</span>(<span class="kw">Surv</span>(pfstime, pfsevent) <span class="op">~</span><span class="st"> </span><span class="dv">1</span>), <span class="dt">mark =</span> <span class="st">&quot;&quot;</span>, <span class="dt">xlim =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">30</span>), </span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a>     <span class="dt">ylim =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="dt">conf.int =</span> <span class="ot">FALSE</span>, <span class="dt">xaxs =</span> <span class="st">&quot;i&quot;</span>, <span class="dt">yaxs =</span> <span class="st">&quot;i&quot;</span>,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true"></a>     <span class="dt">main =</span> <span class="st">&quot;estimated survival functions&quot;</span>, <span class="dt">xlab =</span> <span class="st">&quot;time&quot;</span>, </span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true"></a>     <span class="dt">ylab =</span> <span class="st">&quot;survival probability&quot;</span>, <span class="dt">col =</span> <span class="kw">grey</span>(<span class="fl">0.75</span>), <span class="dt">lwd =</span> <span class="dv">5</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true"></a><span class="co"># how far out should we predict monthly number of events?</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true"></a>future.units &lt;-<span class="st"> </span><span class="dv">15</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true"></a>tab &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="ot">NA</span>, <span class="dt">ncol =</span> <span class="dv">2</span>, <span class="dt">nrow =</span> future.units)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true"></a>ts &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="dt">by =</span> <span class="fl">0.01</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true"></a><span class="co"># the function predictEvents takes as an argument any survival function</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true"></a><span class="co"># hybrid exponential with cp.select</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true"></a>St1 &lt;-<span class="st"> </span><span class="cf">function</span>(t0, time, event, cp){</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true"></a>     <span class="kw">return</span>(<span class="kw">hybrid_Exponential</span>(<span class="dt">t0 =</span> t0, <span class="dt">time =</span> time, <span class="dt">event =</span> event, </span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true"></a>     <span class="dt">changepoint =</span> cp))}</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true"></a>pe1 &lt;-<span class="st"> </span><span class="kw">predictEvents</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, </span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true"></a>          <span class="dt">St =</span> <span class="cf">function</span>(t0){<span class="kw">St1</span>(t0, <span class="dt">time =</span> pfstime, </span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true"></a>          <span class="dt">event =</span> pfsevent, cp.select)}, accrual_after_ccod, </span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true"></a>          <span class="dt">future.units =</span> future.units)</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true"></a>tab[, <span class="dv">1</span>] &lt;-<span class="st"> </span>pe1[, <span class="dv">2</span>]</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true"></a><span class="kw">lines</span>(ts, <span class="kw">St1</span>(ts, pfstime, pfsevent, cp.select), <span class="dt">col =</span> <span class="dv">2</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true"></a></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true"></a><span class="co"># for illustration add piecewise exponential with five changepoints</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true"></a>St2 &lt;-<span class="st"> </span><span class="cf">function</span>(t0, time, event, tau, lambda){</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true"></a>      <span class="kw">return</span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">getPiecewiseExponentialDistribution</span>(<span class="dt">time =</span> t0, </span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true"></a>                        <span class="dt">piecewiseSurvivalTime =</span> tau, </span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true"></a>                        <span class="dt">piecewiseLambda =</span> lambda))}</span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true"></a></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true"></a>pe2 &lt;-<span class="st"> </span><span class="kw">predictEvents</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, </span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true"></a>          <span class="dt">St =</span> <span class="cf">function</span>(t0){<span class="kw">St2</span>(t0, <span class="dt">time =</span> pfstime, </span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true"></a>          <span class="dt">event =</span> pfsevent, <span class="dt">tau =</span> <span class="kw">c</span>(<span class="dv">0</span>, pe5<span class="op">$</span>tau), </span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true"></a>          <span class="dt">lambda =</span> pe5<span class="op">$</span>lambda)}, accrual_after_ccod, </span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true"></a>          <span class="dt">future.units =</span> future.units)</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true"></a>tab[, <span class="dv">2</span>] &lt;-<span class="st"> </span>pe2[, <span class="dv">2</span>]</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true"></a><span class="kw">lines</span>(ts, <span class="kw">St2</span>(ts, pfstime, pfsevent, <span class="kw">c</span>(<span class="dv">0</span>, pe5<span class="op">$</span>tau), pe5<span class="op">$</span>lambda), <span class="dt">col =</span> <span class="dv">3</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true"></a></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true"></a><span class="co"># since we have simulated data we can add the truth</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true"></a>tp &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="dt">by =</span> <span class="fl">0.01</span>) </span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true"></a><span class="kw">lines</span>(tp, <span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">getPiecewiseExponentialDistribution</span>(<span class="dt">time =</span> tp, </span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true"></a>                        <span class="dt">piecewiseSurvivalTime =</span> piecewiseSurvivalTime, </span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true"></a>                        <span class="dt">piecewiseLambda =</span> lambda2), <span class="dt">col =</span> <span class="dv">4</span>, <span class="dt">lwd =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">1</span>)</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true"></a></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true"></a><span class="co"># legend</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true"></a>legS &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Kaplan-Meier&quot;</span>, <span class="st">&quot;hybrid exponential&quot;</span>, </span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true"></a>          <span class="st">&quot;piecewise exponential K = 5&quot;</span>, <span class="st">&quot;true S&quot;</span>)</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true"></a><span class="kw">legend</span>(<span class="st">&quot;bottomleft&quot;</span>, legS, <span class="dt">col =</span> <span class="kw">c</span>(<span class="kw">grey</span>(<span class="fl">0.75</span>), <span class="dv">2</span><span class="op">:</span><span class="dv">4</span>), </span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true"></a>       <span class="dt">lwd =</span> <span class="kw">c</span>(<span class="dv">5</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>), <span class="dt">bty =</span> <span class="st">&quot;n&quot;</span>, <span class="dt">lty =</span> <span class="dv">1</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAJACAMAAAANcPFkAAAA51BMVEUAAAAAADoAAGYAOjoAOmYAOpAAZmYAZpAAZrYil+Y6AAA6ADo6AGY6OgA6Ojo6OmY6OpA6ZpA6ZrY6kLY6kNth0E9mAABmADpmAGZmOgBmOjpmZgBmZmZmkJBmkLZmkNtmtrZmtttmtv+QOgCQOjqQZgCQZjqQkDqQkGaQkLaQtpCQttuQtv+Q27aQ29uQ2/+2ZgC2Zjq2ZpC2kDq2kGa225C227a229u22/+2/7a2/9u2//+/v7/bkDrbkGbbtmbbtpDb27bb29vb/7bb/9vb///fU2v/tmb/25D/27b//7b//9v///8QAMmWAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAeyElEQVR4nO2dC3fjuHlAOc641Xhm85Q93SZpslaTpkkbK03bbGIpm0dtai3+/99TAiBIUCIpUnwB/O49Z+eIMkWQK1zh+QFRAiCYaO4bAJgTBADRIACIBgFANAgAokEAEA0CgGgQAESDACAaBADRIACIBgFANAgAokEAEA0CgGgQAESDACAaBADRIACIBgFANAgAokEAEA0CXMXxv56T4ya6fbl8WgXb6Kby/aYr1Sfm/On4u7so+mGr67V7gOWDANfw7Zc3bfKPPq2C0QSIo5R1i8u1fAABIMA1tMzBdaddIUADTj7eR++eWn1m2DsIGQS4wPF3UfTuhzqD/fmL9OUPvlbZJ+XmTyrjvT1Eq798Eb37KvnzXfRe576/fJn+9XtP9rRn9xKqjvL+N072y6+Z5cn0emudkX/9ZXTzpTkv/V1/1Ll8Wxw7yRQC6ATfPZ1c6bdp8ubOkm/S1L7zVekB1A3/c/ruv6hXpbOLW1syCNBMmo0U759V7oiyHF0WwPBF9jdTDVH50ArgXCLNq/lFNMU1TwRQ3H6jc3r6l9sXncvj4thJ5oIA+XnZ31UdqSRAdorzUp/t3NqSQYBm0sz0dXK4SzON+q1/Sb7RdWydxY5WgLV6N/pKZZm1evcfX8wnsjxdXELl2tWLKhCybHV2zSLb3n6d/C291ip7SydWPrbJnFWBTq70/mtzZyr1H718+2AUztsA6TXSf80ZztnurS0ZBGjE5KI0S9w8pxnl/R+yt0sCpNnH/Gsyecpf/zstD1bZac4liqyZCXB2zSLbqp9686F98TNfHDvJXBLgUadjbyfZ/+AP7gPY5sDWXDo/2721JYMAjaTZwFYKTPXF1JVLApgf5VWSCXD8pfmEzXHlS6ySxGmCnl2zqLk/Zcmb2n/xa50dO8lcEEC9o+/P7fQpHsC+q08sn53f2pJBgEaymrauFX/7pXn1H40CqIzz/t//+pAL4FzCnOb2wZxeM5PICqCMybSyGhTHNpkaAdwr2Sy9ss91+gBZy9o52721JYMAjaif3OLo2199YVqLDQKYfPf24JYA9hI2q7qdkOVrngig6jz/pl8fbYM1O3aS6SBAhxLAvbUlgwCN2LyQc/xFuQ15JkBsq9Hrog1Q/uF12gDuNU3mi6OSALr+pGs8Jp/mx04yZwKcX8nxMYm/95uGNoArQH5rSwYBmtmqLv5vH0wf5I9eVMVAN0Ztu7SqBLh9+Xaj2wD2B9leIusF2ua9QOVrpp9WH3QF0B2WqgApCg9z7CRTIcDplcz9pan9UP3i27pOVS9QfrZ7a0sGAZrJOvFVvvhd0Uceu+MA520A2wiO3XEAtyc+/1l1rpk3lksCxNm5Npc7x7WN4PMrZb/p2/KdVY0DFGc7t7ZkEOAC3/4yzU5mPFSNo0bfUy9VV/77P9T3Ar3/zd4OAb//2r3E8fd30Xe+ctoAxTWTQ9rq/MH/PpQFsNURm8vz6kmRzPlUiLMr2U/pkeCflR4gyUaCf1Z8PjvbubUFgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABE012Aw6c8SDRefsAQLJzOArw95NFMcZr7YwyAkOkqQFzEsx43asWz7arxfACv6ShAHK1jK8DhTi1PsF/4shmwbLq3AQoBPj65h+piOR9SIgC/GFYAU/2vbgR80HS+NsCITCjAbocC4BsDC3BeBSrY7VAAfGNoARoawUqA3SsKgE8MLEBTN+huhwLgGwML0DQQFu1QAHxjQAGOG/XDv6+dCpELgALgDcMI0DKpHQqAZ0wqQFKhwP04iQG0YmIBFGcKpC/HSRHgEjMI4CqQOYABMBOzCFChwDhJAlxgJgGcxgAKwIzMJUDilgL3KAAzMaMAFlUIoADMgxcCoADMhQcCZLPkUABmwAcBkqwUuEcBmBpPBMhKgXscgGnxSgAUgKnxRYC8U/QeBWBCvBGgGBYoFGCGBIyNPwI4g8OOAuPcCkCGRwKcGEBFCCbATwFKCuAAjIdPApQMMAowUQ7GxSsBytyjAIyOxwLYQgAFYDw8FiDZoQCMjc8CJDsUgJHxXoDdfUkBHIBB8VqAxO0PeqUYgOHxWwAUgJHxXQAUgFHxXwDXAEcBHIAhCECAZHdSCKAADEYIAlQowIZjMAxhCIACMBKhCJCcjAqgAAxCQAKc9ge9vu5oDEBPwhMgU2BnFGDfSehFSAKUw4YzBV5RAHoQlAAnBtiqEDUhuJqwBLC4DtxTE4LrCVMAgytBQp8QXEPIApQLgnsUgO4ELYDBkYDGAHRkEQJki4qymhB0ZgECZH1DaVvYVcC8OVaSsBSWIEC+tPRrJsEH1wEkgAYWIUA+PmCGxoo11u93SACNLEOA0q6rZoqEVeD+HgOgnoUI4GIVsAPEetrERGlDaCxQAKtAUlLg/n6y5CEgFilArkBaN3IVuL8vqkoT3gx4zEIFcBRIPpQduMcBKFisAIUCeWvAmTaBAWBYsABWAdUetgo40yYwAJKFC5A47WHbIC4m0GEALF8AtzGQ5NOEjAMYAAIEqFYgsYXAXDcFfiBBgLMuIfXCFgLz3RT4gAwBqhTIq0Fz3hbMjRQB8i4htxDAAJAjQFIUA5kCdnmVuW8LZkSUALkCuQE7JgkJR5gAJwpggHjECWAVKBmAAmIRKECSOVAaGJ77jmAmZApgFMAAECtAWQGqQWKRK4BWgEJAOpIFKCmAATKRLUAK1SDZiBfgRIG5bwYmBgGSZKcVeH3FAIEgQJLY9VOyxUWZHScJBNBYBTBAGghgcQoBYiXlgAA55UIAA2SAAA5lA3BAAkMIEEfRuyd7sI+i6LF1Ur5RKIABMhhAgDjN/bE1YK8Oqg0IQQCjgCkEXhFAAP0FOG7W6b/bVXawKg56XXY2ilUUX1Fg+fQX4HCnfu/3N8/qYAECZAoYA7LlhGCxDCDAR1X7iY0A51WgqOD6u5yYYjVpvbTo3LcDI9JfAFP9zxsBpRZxj8vOS6kQoBRYMEMLsE1LgsPdum1S/lIqBHBgsQxcBSo1CHpddnbKhQAKLJSBG8En9aEel/WAYptJFFgsA3eDGhviJZQAiVMI5DsQz31HMDRDD4Qtpg1gcPYaRoFFMsRUiL3p+MnGAKIoqsz/QQrgKuCsrwuLgclwl8gMMIPCKLA0EOAyRgE7HoYCiwIBWpBFzdtDioEFgQBt2BV7i2lQYDEgQBt2u/sTBagJLQQEaIU14FwBHAgbBGiFXjXr1ACKgQWAAO3Y6aGAOgVwIFgQoB2qCNhlBlAMLAgEaMkuC5T/YNnlUAwEDAK05T7DkSA3gGIgWBCgNfcFVQUBxUCQIEAndo4EZw6gQIAgQDfsdkoZNQ7snMoReA0CXMe5Ax9KDmBAICBAD2oKArcYmPsW4QII0JPKgqBQYO7bgwsgwAA0ODD3rcEFEGAoTiRglkQYIMCQnBYEOOA9CDA45VYxCvgNAoyCWxBQDPgMAozGmQRz3xBUgACjoccBCgfuS0PEjBV7AgKMh83jZQkwwCsQYEScbF44kO2/hwB+gAAjcvJbXy3B3DcpHAQYk7Mav+sAW7H6AAJMzokEc9+OcBBgDsoO3N/PfT+CQYC5OJXgvIeUGtIEIMCMvJ5KUGXB3De5cBBgRtLsfe4A3aSTggAzojP462uzBHPf5MJBgDnJ8rjrgCPBPfl/fBDAD15dCdwliOa+saWDAL5gJk07EWVYMAUI4BFnDmDB6CCAX7w2S4AFQ4MAvvFqI8hKElAUjAQCeEgeRPmhLAEWDA8C+EkRSHziABWiYUEAX3ktHDiTAAsGAwE8xnXgXAIqREOAAH5TWlPltEmgwIJ+IID3lNcVqnAAC3qAAAHwWnbgogRY0B4ECINTB6olwILOIEAwnC2xWNUkUGBBBxAgJM6XGa2TgGZBSxAgMCqW2q1zAAtagADBcdYcUNRLgAWNIECIVDrQUgIsKIEAgVLtQJMElAVVIEC41Oy8Udsu1lAWlEGAoKnbfaZZAiwoQIDQqd2B6YIEWKBpI8DbQ7QaKSkYgvpdyC5JgAXtSoB9FEXrMZKCYahpEmsuSiDagtZVoP4OIMCoNDnQQgKpFnRoAygFbp6HTQqGpNGBNhIItKCtAHGa+x+T4+b2ZdCkYGCaHWglgSwLWgmQtoIjk/PjHkUAAkzDBQfaSSBm1KxdL9C7p5GSglG45EBbCQQUBq0E+Gzyf5+f/5qkYCwuOtBagmVb0EWAPQIExUUFOkiwWAsuC7CNcugGDY3L5UAXCZZoQZcSYISkYHRaKNBJgoVZwFwgAbQpB7pJULIgaA0QQAbtHOgmwSIKg4sCvD2s1TCAhkZwyLRToLMEgVtACSCJluWAK8HSLUAAYbR2oHtREGTDAAHk0cGB7hKEVhi0aAMU4wA1bYA4ioq5Eoe7qCZ8BgH8oYsD10gQjgUDlABxmvtja0B8+5I6U2kAAnhFJweukiCIKlF/AY4bNUC8XTkH1XMmEMA3ujnQvWVs8NuC/gIc7h6TPM8fPtYPGiOAh3R04MqiwOPCoP84gMnz2UzR+OaPD3VzhhDATzo7cK0EXlrQvwQw1f+sEbBXkhw3ThugaEIjgLd0d+BqCXyrEg0twDunOOh1WZiWKxy4tlGg8KYwaCeArgTVhAOXqkCmKWCaBW2SAp+4RoIeRYEXhUErAeJIt3OrAyNLjWDjQXVTGAEC4CoHekkwc2HQRgDTt5kk28oyoNQN+vagbKAKFDLXOdCnPqSYy4J2QfGmRlMTE1waCNunklhhWiQFXnKlA30lmKMwaFcCmJ/3fU0rYG+mQpjT4trQSQQIiddrJehXH1JMqkHLNoDK0nHPxVEQIDCud6B3UTCdBUNMhuuRFHjO9Q4MIMEUGjAdGi7Qw4EB6kPJyBYgAFymlwODFAWjadB6bVCqQLLp0SDQDCLBCBq0EmB7+7Jf1Yzv9ksKQqKnAwMVBcNa0G4cYK0DXeq6QXskBYHR14HBioKhNGg7EHb49Kz/6wECLIO+laFkuKIg6a9B26kQanlEBADDAA6MZ0E3DVq1AdRMt+2aKhA4DOHAkBJcqUG7btDtSvUE9esEQoDFMUhBMLAFXTVgHAD6MJADA0vQoWmAANCXgRwY3oI2GvSPCGsNAiyXoQqCkgQDWdCsQf+IsNYgwLIZzIERioKkVoP+EWGtQYDFM1xBkExggdZggIiwtiCABAZ1YBQJLjcNukaEtQQBpDCsBCNZkLQXgIgw6MrADoxmQXJRACLC4EqGdmCMHiLGAWBMBi8IBi8KEABGZngHhrSgnQBq25eoZxMAAeQyQkGQDGRBh2VR9hERYXA1o0twnQVdBsLoBoVejONAPwsYCINJGUuCay2gBICpGc2BayygDQBzMKIE3RrH9ALBXIwpQWsLGAeAGRnVgVYWdGkD9AQBoIqRJbhgQZdeoJ4gANQwtgMNreN2jeCe60HUJwWQMb4ElWVBuxKA2aAwBRNIcGoBjWDwitcpJLiiXTAACADtmMQBa0HFH1gWBWZnIgmSVgKYYEiWRYFpmUKCduMAphuUZVFgakZvErTqBfpsfvqZDQpzMKoEXUoAZoPCXIzmQJelEZkNCnMyigSdBsL6jYUhAPRmcAkYCIPAGLZJgAAQIMNJgAAQKMNIgAAQMP0lQAAInH4SIAAsgOslQABYCNdJcFEAlkeHcOguASUALIxuEiAALJD2ErQSwFaDqAJBOLSToJUA29uX/So53DEZDsLisgTtJsOtk/j2henQECLNErRdGOvw6Vn/1wMEgLl4rbWg7dKIKioMASBkKh1o1QbYp63f7ZoqEATPWUnQrht0u1I9QT0XSEQA8IKSBIwDgEQaW8YIABJoLcDbw2qI9BAA/KNVCbAdYIMkBAAfadsGiNVUiH4FAQKAf3RoBB83zAWCpUEJAKJpNxJMGwAWSru5QPQCwUJhIAxEgwAgmhZB8Wt2iYTFQgkAokEAEA29QCCadkHxzeMA8clfazbTQwDwjwFGgtUmqrFjQFyzozACgH/0nwukIoZ1zFjG2wMCQDD0LwHMckH7XI797S8QAEKh/1ygw0f1l3wP4fSw1AYoltZFAPCP/r1ApvpvGwGqQkQjGIKh7bpA9ZQFUEunIAAEQ9uV4eopVYH0AQJAMLTbKb5pElCpEbzPqvtVxiAA+EenneJbdYNSAkBADDAX6HQgDAEgHIaYDLc3naTHTVYKIAAEQ/8qUK+kAOalQwnQ2BS+MimAeelSBdqyLAosjS4C9CwCEAD8o4sAewSApdFBgL6BYQgA/tGlF6jfDkkIAB5CUDyIBgFANK0EUDtl76kCwQJptyrE7cvhbsU4ACyPtvEAcfTIOAAsj7YCbNPMzzgALI52VaDV28PtC+MAsDxaNoKjd0/5bOchkwKYF7pBQTQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABDNEALEUfTuKXt93ERRtG6dFMC8DCBAnOb+ODPguElf7KNV26QA5qW/AMeN+sHfmjx/uHtM/93fPPe+LMAU9BegIs/HeY3o+ssCTMEAAnxUuT12BdhSAkAg9BfA/Ny7P/qx2wqOCq67Q4ARGUGAuLoNTAkAHjJ8FSiu6QVFAPCQwRvB+7r8jwDgIQN3g6b5/7FLUgDzMvBA2OGu7ve/lwDb2xedUlXr4u2hRrnjJiuM4sh8vPl0EMkQUyH2ZirEcbNSLxVDjwMYAeLK0qVJAJPxt64AAC5zTYbbXaD8US1A9fBakwD/8Fl94u2ffowAUMNMAlzK/ycGKAFs/t+mJcyj6nz69Z2edqcFyN58e/j5Q2TLibRE2qo6UHz7CyXAPipOzw8+/yqqHLQDKQQjQJ7/02bAPn19uEszuqoUqRxt33x7UHPx8ol5q1jl/O1a+WM+szYCFAeUDcIJRYBvsnbFm6rVqJ5X09ze376kOTp/8+1hbftltQCHT8/qE1t1li4Mbp6VAM5BfZsdRBBIGyB699uNM9QWPWbZPC0XsjaAflO/to2CVIDjJi0lbl/yAiT9kPpr6QBEE0ZE2FZXb3QfaFp7v/kfVQJ8zGZgqExs3zwVINmv0hqQrkFl85GMAO4BiCYQAXQvUGTrN4cTAfI3rQC6jasEOHz6078+uU2IpCgBEgYFICQBdNNVzzmKI9sG0LX7x/zNsxLguPlp2gwwZ5lLmTaAcwCiCUmAY9oMML/zaVlwuFM6mEyfv3kmQNp6WJmP676hbdZkKB2AZEISIM30N8962DnNu4e7n95lff+PiX3zXAA9ery14wBpSVGMA+QHIJgwBKjAdnYC9AEBQDQIAKIJVgCAIUAAEA0CgGgQAEQThAAn3fXl9m/xx5qImS7Ej+XEGChYOuELUNBfgLP8jgBLBwEaEkKA5TOfAK9NlE99ezDTHvTaK/uVmQVhIxr/aOc2vPuVFSALeNzryQ7rPHhSBw2YsEgbObkvvXFIz7v9u75eHmOJAMtmNgEa8/+ZACbSUc36PG4e9Ty4PKLRxASnf4ntYhQ24FGtWLS/fcmDJ7O5c6sicrIIjTQH+VTRIsYSAZZNIFWgdR7Adfj4lEVDZhGN+k1dKdpmUZM24DH974+fn4rgSbOElw4hsNdzQyOzBPR/RYwlAiybQATIaiPpD7P+SXejIXWEiw6XzNoAecBjNhk6P928sJGQKo6gFBqpgoudYIEixhIWTFgCpBl9u86CwdJ/8/f3JQFswGM2GTqPHTMCZPlcC1AKjXQFKMVYwoIJS4C3z/+p6zQtSgDFcfOT9A8nApyVAE4CVoByjCUsmLAEOG6+mzZ73RVR3DbA3rYBbKbd3/7fZl0ETzptgCK/lxKwApRjLGHBhCWAWXzdjYa07+t3nF4gG/AYqyjK7HSnF8hWndzQSC3AOheqiLGEBROYALo6U4qGLGIcy+MANzoWXq+OZU93xgEKoYrQSN3KzsYBSjGWsGCCEKDg8P3uSxkSOgP1BCbA/oqlDBEA6glKgMPdNWvZIgDUE5QAAEODACAaBADRIACIJiwBWnfLj9J/Xxcv2byHpZpsVPEH8IOwBJiV2nCxpj0szUQk8BYEaE2zADXxmDF78PlNEAKUd4S0cYzmxSp/w10NWs9nUBGOUekDSTJGvKS7h+Upe2o/fjOfAPdNlE8t7QiZxzFmMYvr/I292gYgUrtirPMpoupT+QcUI8RLuhvQZNrle4Vvv+vKB94xmwCN+f9MAGf+89kWj/kbKhduf5Jm6o92Imj57+WD4eIliz0szzD7sG4xwFvCqAK5ETB5HKOd4uAGNr59/vWn53wzVJPnnRDJceIly3tYVkBDwF/CEMDdETKPY7QdLEUI5HZ9+P7fPz9tsxn/x41+1wmRHCde0tnDsub+mY3kLQEKYGsb5RJAsb/9/SrZ/mjj9NenmbPUPh0jXrLYw9LcltsGcO4ffCQMAZwdIYu8XbQB7O/r4dOP05btdz4+uSeVNwMeI16y2MOy4s51DYsqkLcEIoAbA2njGPULvRu2fUP318RRtlqW/gmPs/PsokFjxEsWe1ie37pezI5GsL8EIoAbA2njGMvjAPoNtUCc/k3XJ8a2JpL/PUnGiJd09rA8v/etbX2AlwQiwGhZiPapcBAAAUSDAAggmiAEABgLBADRIACIBgFANGEIEDe3VHXcIaOtcAVBCHAhwtcEI25rZiQDNLAEAfR0AxMQBtCNEAQwwYj5jpD5NIVshg05H65nPgE+NFE+1czDtDtC2olqeZRj5XokAG2YTYDG/F8pwNqdmexEOZoigjYwXEMIVaAkDwM4C1fMTzlu6sJyARoIVAA3ytGypRCAzgQqQCng8Cw0EqAtoQlQrFCSY3uBCDyE7gQiwNqu86CCd6PHcpSjDoIsotIB2hOEAHkwop708HMnXNGgp0JQAYIrCEMAgJFAABANAoBoEABEgwAgGgQA0SAAiAYBQDRDCBC7o1Bx7ZAUAoB/DCCAmoSWT0QrHfS6LMAE9BfALKxv4nLLB70uCzAF/QUws5H3ZmJO6aDXZQGmYAABzCZDmQDugbkYgM/0FsDU+LN6f+mg12X7MnF5s+SHE/e/EgF8T27JqXnwcINWga69bF/EfWtLSc2Dh1tEI1jct7aU1Dx4uEV0g4r71paSmgcPt4iBMHHf2lJS8+Dhut7B3sx+MKsz7D2ZCiHuW1tKah483CImw4n71paSmgcPhwC+J7fk1Dx4OATwPbklp+bBwzFpB0SDACAaBADRIACIBgFANAgAokEAEA0CgGgQAESDACAaBADRIACIBgFANGMIUL9k6AjoTfOiyrjMETh80hHQEz2hSW2SJzxu0jT01puTPFue3DRfXx65df5wIwjQECk5AmZtiol4e9BLAEz0hFlqUzzhcZM+zl5lxEmerUhukq9PLdygn6ni4YYXoClWfgSm3DI7Ntu1TvSEWWqTPGG+wsc0z1YsKDLFw+kt11UQb9XDDS9A02opI7CfyjS9Pbf+vqZ5QpvahE+Y/jhO+e2p3+LJHk4JUPVwIwjQsF7WCGy/ayuvU2AEmOoJTRLTPeH25nnKby9NbrqH26e2VT3c8AI0rZg4PG8Pty/p/8qpDND/8yZ7Qp3adE+YljlTfnsquakeLtaWVT1c6AJkaU5V3swgwNnL0VKzbeBpvr246PuZ4us7bm5fphFg4iqQSVNX7iZgjiqQZvwnjHVNZLpncyo+k3x9qoEzSRVo4kawSXOqvtAJG8FJWYCxn3BvMuRUz7Z3K/6TfH3pk03TCJ62G9Q807RVoMme0NFt7CfcR+ZHeKJns8lN8nB5ItN0g048EKYfZ9pG8GRPmPUCTfCEhzt7/UmerUhukq9vm7a0deafZCCsacnQMdhGUTRRCyD/rZroCbPUJnjCvdlCSD3UFM/mJDfJ15cncv5wTIYD0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYBQDQIAKJBABANAoBoEABEgwAgGgQA0SAAiAYB/CN+TN4eJlvtUTgI4B1k/ilBAO9AgClBAN843EXR7d9TCQ53P3+IorU61vs6TLkZoBwQwDtUCfCmBdC7Sd886z1N9C6HdxgwNAjgHYUA68T+86g3e5545zURIIB3FAI8Jvk/Zl+TyTYDlAMCeEe1AGZPlen2wpECAnhHQwkAg4MA3lEpAH2jI4EA3qHau2cC6F6gZEs5MDQI4B9bOw7gCqDHAegEGhwEANEgAIgGAUA0CACiQQAQDQKAaBAARIMAIBoEANEgAIgGAUA0CACiQQAQzf8DvrogZVPWGF0AAAAASUVORK5CYII=" /><!-- --></p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a><span class="co"># prettify the output</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>tab &lt;-<span class="st"> </span><span class="kw">data.frame</span>(pe1[, <span class="dv">1</span>], <span class="kw">round</span>(tab, <span class="dv">1</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="kw">colnames</span>(tab) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;month&quot;</span>, legS[<span class="dv">2</span><span class="op">:</span><span class="dv">3</span>])</span></code></pre></div>
+<p>Since we can compare our estimates to the truth we see that the hybrid exponential model actually not too badly estimates this truth. It is important to note that based on the generic formula in the methods section above we know that the latest timepoint <span class="math inline">\(S\)</span> has to be evaluated at is the <em>time of the last censored patient</em> + <code>future.units</code>, which in our case amounts to 29 months, i.e. we have to <strong>extrapolate</strong> 15 months beyond the last observed PFS time! Looking at the plot of the estimated survival functions we see how variable the various estimates are at 29 months, implying high dependence of the predicted analysis timepoint on the selected model.</p>
+<p>In any case, based on these survival functions we then get the following point predictions of event numbers over time:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">kable</span>(tab, <span class="dt">row.names =</span> <span class="ot">FALSE</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="right">month</th>
+<th align="right">hybrid exponential</th>
+<th align="right">piecewise exponential K = 5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">113.7</td>
+<td align="right">112.8</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">128.1</td>
+<td align="right">125.8</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">143.2</td>
+<td align="right">139.5</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="right">159.1</td>
+<td align="right">153.8</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="right">175.7</td>
+<td align="right">168.5</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="right">193.0</td>
+<td align="right">183.5</td>
+</tr>
+<tr class="odd">
+<td align="right">7</td>
+<td align="right">210.9</td>
+<td align="right">198.8</td>
+</tr>
+<tr class="even">
+<td align="right">8</td>
+<td align="right">229.5</td>
+<td align="right">214.6</td>
+</tr>
+<tr class="odd">
+<td align="right">9</td>
+<td align="right">248.7</td>
+<td align="right">230.9</td>
+</tr>
+<tr class="even">
+<td align="right">10</td>
+<td align="right">268.5</td>
+<td align="right">247.6</td>
+</tr>
+<tr class="odd">
+<td align="right">11</td>
+<td align="right">288.2</td>
+<td align="right">264.0</td>
+</tr>
+<tr class="even">
+<td align="right">12</td>
+<td align="right">307.3</td>
+<td align="right">279.6</td>
+</tr>
+<tr class="odd">
+<td align="right">13</td>
+<td align="right">326.0</td>
+<td align="right">294.4</td>
+</tr>
+<tr class="even">
+<td align="right">14</td>
+<td align="right">344.1</td>
+<td align="right">308.5</td>
+</tr>
+<tr class="odd">
+<td align="right">15</td>
+<td align="right">361.8</td>
+<td align="right">322.3</td>
+</tr>
+</tbody>
+</table>
+<p>Note the sensitivity of the estimated timepoint on the estimate of <span class="math inline">\(S\)</span> in the table above.</p>
+<p>Our sequential test suggested that we use the model without a changepoint, i.e. a standard exponential fit. This corresponds to the column <code>hybrid exponential</code>. Looking at this column we find that the targeted number of 299 events happens between time unit 11 and 12 after the current CCOD. Linearly interpolating we can get the “precise” timepoint as follows:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>fa_pred_ccod &lt;-<span class="st"> </span><span class="kw">exactDatesFromMonths</span>(tab[, <span class="kw">c</span>(<span class="st">&quot;month&quot;</span>, <span class="st">&quot;hybrid exponential&quot;</span>)], nevents)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>fa_pred_ccod</span></code></pre></div>
+<pre><code>## [1] 11.56545</code></pre>
+<p>On the timescale of trial start we need to add the CCOD to get:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true"></a>fa_pred_ccod <span class="op">+</span><span class="st"> </span>ccod</span></code></pre></div>
+<pre><code>## [1] 25.56252</code></pre>
+<p>Now, let us compare our prediction of when 299 events happen with what we predicted before starting the trial. As we are blinded once the trial started we only re-plot the initial prediction for the entire trial, not separate per arm.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true"></a><span class="co"># plot event predictions pre-trial and after CCOD</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true"></a><span class="kw">par</span>(<span class="dt">las =</span> <span class="dv">1</span>, <span class="dt">mar =</span> <span class="kw">c</span>(<span class="fl">4.5</span>, <span class="fl">4.5</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true"></a><span class="kw">plot</span>(time, nSubjects<span class="op">$</span>numberOfSubjects, <span class="dt">type =</span> <span class="st">&quot;l&quot;</span>, <span class="dt">lwd =</span> <span class="dv">5</span>, <span class="dt">col =</span> <span class="kw">grey</span>(<span class="fl">0.75</span>), </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true"></a>     <span class="dt">main =</span> <span class="st">&quot;Number of patients and expected number of events over time&quot;</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true"></a>     <span class="dt">xlab =</span> <span class="st">&quot;Time from trial start (months)&quot;</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true"></a>     <span class="dt">ylab =</span> <span class="st">&quot;Number of patients / events&quot;</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true"></a><span class="co"># expected events at design stage</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true"></a><span class="kw">lines</span>(time, expEvent, <span class="dt">col =</span> <span class="dv">4</span>, <span class="dt">lwd =</span> <span class="dv">3</span>, <span class="dt">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true"></a><span class="co"># patients already recruited</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true"></a>tot_accrual1 &lt;-<span class="st"> </span><span class="kw">subset</span>(trial2, <span class="dt">select =</span> <span class="st">&quot;accrualTime&quot;</span>, <span class="dt">subset =</span> timeUnderObservation <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>)[, <span class="dv">1</span>]</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true"></a><span class="co"># add those that will only be recruited after CCOD</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true"></a>tot_accrual &lt;-<span class="st"> </span><span class="kw">c</span>(tot_accrual1, accrual_after_ccod <span class="op">+</span><span class="st"> </span>ccod)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true"></a>tot_accrual_unit &lt;-<span class="st"> </span><span class="kw">cumsum</span>(<span class="kw">table</span>(<span class="kw">cut</span>(tot_accrual, <span class="dv">0</span><span class="op">:</span><span class="dv">59</span>, <span class="dt">labels =</span> <span class="ot">FALSE</span>)))</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true"></a></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true"></a><span class="co"># actually not much to see, b/c simulated data perfectly uniform</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true"></a><span class="kw">lines</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(tot_accrual_unit), tot_accrual_unit, <span class="dt">col =</span> <span class="dv">1</span>) </span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true"></a></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true"></a><span class="co"># now add event prediction based on hybrid exponential and 100 events</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true"></a><span class="kw">lines</span>(tab<span class="op">$</span>month <span class="op">+</span><span class="st"> </span>ccod, tab[, <span class="st">&quot;hybrid exponential&quot;</span>], <span class="dt">col =</span> <span class="dv">2</span>, <span class="dt">lwd =</span> <span class="dv">3</span>)</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true"></a></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true"></a><span class="co"># add lines with prediction based on CCOD data</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true"></a><span class="kw">segments</span>(fa_pred_ccod <span class="op">+</span><span class="st"> </span>ccod, <span class="dv">0</span>, fa_pred_ccod <span class="op">+</span><span class="st"> </span>ccod, nevents, <span class="dt">lwd =</span> <span class="dv">3</span>, <span class="dt">col =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">3</span>)</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true"></a><span class="kw">segments</span>(<span class="dv">0</span>, nevents, fa_pred_ccod <span class="op">+</span><span class="st"> </span>ccod, nevents, <span class="dt">lwd =</span> <span class="dv">3</span>, <span class="dt">col =</span> <span class="dv">2</span>, <span class="dt">lty =</span> <span class="dv">3</span>)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true"></a></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true"></a><span class="co"># finally, we add observed events over time</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true"></a><span class="co"># note the x-axis of the plot (time from trial start), so we need to add accrual time</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true"></a>events_trial_time &lt;-<span class="st"> </span><span class="kw">sort</span>((pfstime <span class="op">+</span><span class="st"> </span>tot_accrual1)[pfsevent <span class="op">==</span><span class="st"> </span><span class="dv">1</span>])</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true"></a><span class="kw">lines</span>(<span class="kw">stepfun</span>(events_trial_time, <span class="dv">0</span><span class="op">:</span><span class="kw">sum</span>(pfsevent)), <span class="dt">pch =</span> <span class="ot">NA</span>, <span class="dt">col =</span> <span class="st">&quot;orange&quot;</span>, <span class="dt">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true"></a><span class="co"># legend</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true"></a><span class="kw">legend</span>(<span class="dt">x =</span> <span class="dv">20</span>, <span class="dt">y =</span> <span class="dv">930</span>, <span class="kw">c</span>(<span class="st">&quot;Planned recruitment at design stage&quot;</span>, </span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true"></a>                          <span class="st">&quot;Recruitment (up to CCOD + prediction)&quot;</span>, </span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true"></a>                          <span class="st">&quot;Expected events at design stage&quot;</span>, </span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true"></a>                          <span class="st">&quot;Observed events&quot;</span>, </span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true"></a>                          <span class="st">&quot;Expected events (after CCOD prediction)&quot;</span>),</span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true"></a>       <span class="dt">col =</span> <span class="kw">c</span>(<span class="kw">grey</span>(<span class="fl">0.75</span>), <span class="dv">1</span>, <span class="dv">4</span>, <span class="st">&quot;orange&quot;</span>, <span class="dv">2</span>), <span class="dt">lty =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>), </span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true"></a>       <span class="dt">lwd =</span> <span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">3</span>), <span class="dt">bty =</span> <span class="st">&quot;n&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true"></a><span class="co"># revert back to initial plot parameters</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true"></a><span class="kw">par</span>(oldpar)</span></code></pre></div>
+<p>So, before the trial started, based on our initial assumptions, we predicted that 299 events would happen after 28.6 months. Our updated prediction after 100 events is now 25.6 months, using the hybrid exponential approach. This prediction is actually quite accurate, taking into account that it relies on only 100 patients with event out of 1000 patients. We have also added the actually observed events over time. As we simulate from the truth the observation is very close to the expectation - <strong>this might not be the case in an actual trial</strong>.</p>
+<p>In general, event predictions come with high variability, see also the strategic discussion below. Note that we have (at least) two sources of variability:</p>
+<ul>
+<li>Accrual of the 413 patients still to be accrued is only a projection.</li>
+<li>Variability in estimation of <span class="math inline">\(S\)</span>.</li>
+</ul>
+<p>Using bootstrap we can easily quantify the uncertainty in estimation of <span class="math inline">\(S\)</span>, for a fixed accrual projection:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true"></a><span class="co"># compute a confidence interval for our event prediction using bootstrap</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true"></a><span class="co"># do not run as takes a few minutes, code only here for illustration</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true"></a><span class="cf">if</span> (<span class="dv">1</span> <span class="op">==</span><span class="st"> </span><span class="dv">0</span>){</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a>boot1 &lt;-<span class="st"> </span><span class="kw">bootstrapTimeToEvent</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, </span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true"></a>          <span class="dt">interim.gates =</span> nevents, <span class="dt">future.units =</span> <span class="dv">20</span>, <span class="dt">n =</span> <span class="kw">length</span>(pfstime), </span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true"></a>          <span class="dt">M0 =</span> <span class="dv">1000</span>, <span class="dt">K0 =</span> <span class="dv">5</span>, <span class="dt">alpha =</span> <span class="fl">0.05</span>, <span class="dt">accrual =</span> accrual_after_ccod, <span class="dt">seed =</span> <span class="dv">2020</span>)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true"></a>ci &lt;-<span class="st"> </span><span class="kw">quantile</span>(boot1<span class="op">$</span>event.dates[, <span class="dv">1</span>], <span class="kw">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true"></a>}</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true"></a><span class="co"># hard-code result and add ccod</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true"></a>ci &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="fl">10.26989</span>, <span class="fl">12.50578</span>) <span class="op">+</span><span class="st"> </span>ccod</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true"></a>ci</span></code></pre></div>
+<pre><code>## [1] 24.26696 26.50285</code></pre>
+<p>So a 95% confidence interval around our predicted CCOD for the final analysis, 25.6 months, ranges from 24.3 to 26.5 months. Note that we implement the entire model selection algorithm into the bootstrap, i.e. the changepoint is determined individually for every bootstrap sample.</p>
+</div>
+<div id="using-parametric-weibull-instead-of-hybrid-exponential-estimate" class="section level2">
+<h2>Using parametric Weibull instead of hybrid exponential estimate</h2>
+<p>If instead the hybrid exponential model we would like to use, e.g., a parametric model such as Weibull, we can proceed as follows:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true"></a><span class="co"># event prediction based on pure Weibull assumption</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true"></a><span class="co"># prepare dataset to fit function &quot;fitdistcens&quot;</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true"></a>pfsdata2 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">cbind</span>(<span class="st">&quot;left&quot;</span> =<span class="st"> </span>pfstime, <span class="st">&quot;right&quot;</span> =<span class="st"> </span>pfstime))</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a>pfsdata2[pfsevent <span class="op">==</span><span class="st"> </span><span class="dv">0</span>, <span class="st">&quot;right&quot;</span>] &lt;-<span class="st"> </span><span class="ot">NA</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a><span class="co"># estimate parameters based on Weibull distribution</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a>fit_weibull &lt;-<span class="st"> </span><span class="kw">suppressWarnings</span>(<span class="kw">fitdistcens</span>(pfsdata2, <span class="st">&quot;weibull&quot;</span>))</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true"></a><span class="co"># event prediction based on this estimated survival function</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true"></a><span class="co"># simply specify survival function based on above fit</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true"></a>pred_weibull &lt;-<span class="st"> </span><span class="kw">predictEvents</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true"></a>                      <span class="dt">St =</span> <span class="cf">function</span>(t0){<span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">pweibull</span>(t0, </span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true"></a>                                                     <span class="dt">shape =</span> fit_weibull<span class="op">$</span>estimate[<span class="st">&quot;shape&quot;</span>], </span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true"></a>                                                     <span class="dt">scale =</span> fit_weibull<span class="op">$</span>estimate[<span class="st">&quot;scale&quot;</span>])}, </span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true"></a>                      <span class="dt">accrual =</span> accrual_after_ccod, <span class="dt">future.units =</span> future.units)</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true"></a>ccod_weibull &lt;-<span class="st"> </span><span class="kw">exactDatesFromMonths</span>(pred_weibull, nevents)</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true"></a>ccod_weibull</span></code></pre></div>
+<pre><code>## [1] 12.27657</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true"></a>ccod_weibull <span class="op">+</span><span class="st"> </span>ccod</span></code></pre></div>
+<pre><code>## [1] 26.27364</code></pre>
+<p>So the predicted CCOD for the FA based on a Weibull fit amounts to 26.3, very similar to what we receive based on the hybrid exponential model.</p>
+</div>
+</div>
+<div id="example-minimal-analysis" class="section level1">
+<h1>Example: minimal analysis</h1>
+<p>This section collects the code that is minimally needed to get to a timepoint of a prediction, without the above more detailed discussion.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true"></a><span class="co"># ------------------------------------------------------------</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true"></a><span class="co"># input data (e.g. OS or PFS)</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true"></a><span class="co"># we use the data simulated above</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true"></a><span class="co"># alternatively, simply use</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true"></a><span class="co"># pfsdata &lt;- read.csv(&quot;C:/my path/pfs.csv&quot;)</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true"></a><span class="co"># --------------------------------------------------</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true"></a><span class="co"># accrual after ccod</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true"></a>accrual_after_ccod &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span>(maxNumberOfSubjects <span class="op">-</span><span class="st"> </span><span class="kw">length</span>(pfstime)) <span class="op">/</span><span class="st"> </span>accrualIntensity </span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true"></a><span class="co"># infer changepoint</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true"></a>pe5 &lt;-<span class="st"> </span><span class="kw">piecewiseExp_MLE</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, <span class="dt">K =</span> <span class="dv">5</span>)</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true"></a>pe5.tab &lt;-<span class="st"> </span><span class="kw">piecewiseExp_test_changepoint</span>(<span class="dt">peMLE =</span> pe5, <span class="dt">alpha =</span> <span class="fl">0.05</span>)</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true"></a>cp.selected &lt;-<span class="st"> </span><span class="kw">suppressWarnings</span>(<span class="kw">max</span>(<span class="kw">as.numeric</span>(pe5.tab[, <span class="st">&quot;established change point&quot;</span>]), </span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true"></a>                                             <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true"></a>cp.selected &lt;-<span class="st"> </span><span class="kw">max</span>(cp.selected, <span class="dv">0</span>)</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true"></a></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true"></a><span class="co"># compute predictions for selected hybrid exponential model, i.e. chosen changepoint</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true"></a>future.units &lt;-<span class="st"> </span><span class="dv">15</span></span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true"></a>St1 &lt;-<span class="st"> </span><span class="cf">function</span>(t0, time, event, cp){</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true"></a>     <span class="kw">return</span>(<span class="kw">hybrid_Exponential</span>(<span class="dt">t0 =</span> t0, <span class="dt">time =</span> time, <span class="dt">event =</span> event, </span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true"></a>     <span class="dt">changepoint =</span> cp))}</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true"></a></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true"></a>pe1 &lt;-<span class="st"> </span><span class="kw">predictEvents</span>(<span class="dt">time =</span> pfstime, <span class="dt">event =</span> pfsevent, </span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true"></a>          <span class="dt">St =</span> <span class="cf">function</span>(t0){<span class="kw">St1</span>(t0, <span class="dt">time =</span> pfstime, </span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true"></a>          <span class="dt">event =</span> pfsevent, cp.selected)}, accrual_after_ccod, </span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true"></a>          <span class="dt">future.units =</span> future.units)</span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true"></a></span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true"></a><span class="co"># find exact timepoint when targeted number of events are reached through linear interpolation</span></span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true"></a><span class="co"># add computation of confidence interval using code from just above</span></span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true"></a>fa_pred_ccod &lt;-<span class="st"> </span><span class="kw">exactDatesFromMonths</span>(tab[, <span class="kw">c</span>(<span class="st">&quot;month&quot;</span>, <span class="st">&quot;hybrid exponential&quot;</span>)], nevents)</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true"></a>fa_pred_ccod <span class="op">+</span><span class="st"> </span>ccod</span></code></pre></div>
+<pre><code>## [1] 25.56252</code></pre>
+</div>
+<div id="possible-extensions" class="section level1">
+<h1>Possible extensions</h1>
+<p>The method implemented in <code>eventTrack</code> currently does not account for drop-out.</p>
+<p>The formula for <span class="math inline">\(m(t, S)\)</span> introduced in the methodology section above is generic, i.e. remains valid for event predictions. What potentially can be improved in a given example is</p>
+<ul>
+<li>the quality of the accrual projection and</li>
+<li>the extrapolation of the estimate of <span class="math inline">\(S\)</span> beyond where we have data.</li>
+</ul>
+<p>The hybrid exponential model is a compromise between a fully parametric and a fully nonparametric estimation method. However, there might potentially be better methods around for extrapolation of survival curves. Such extrapolation is the bread-and-butter of Health Economists and I suspect they could offer good approaches, e.g. using external data to inform extrapolation (<span class="citation">Jackson et al. (2017)</span>, <span class="citation">Guyot et al. (2017)</span>) of Bayesian model averaging. However, the effort put in any modelling effort has to be balanced against a potential gain in precision in estimates. Typically, the approach described above provides “good enough” predictions in many instances.</p>
+<p>What is described in this document applies to <strong>one treatment arm</strong>, or equivalently, to prediction blinded to treatment assignment. If you are unblinded to the treatment assignment and want to use that information for prediction, then you can perform a separate prediction of events per arm (potentially also using an estimation method for <span class="math inline">\(S\)</span> that is different between the arms) and then add these up.</p>
+</div>
+<div id="strategic-context" class="section level1">
+<h1>Strategic context</h1>
+<p>Implementing an event prediction based on data and getting the relevant numbers, point prediction + confidence interval, out is certainly an important aspect. However, in a drug development context this is only the starting point. Strategic considerations are important. Drawing from my experience I list a few aspects that I found important in the past:</p>
+<ul>
+<li>Only do the above exercise on <strong>sufficiently clean data</strong>. Predictions are worthless if many events are still missing because of a cleaning lag.</li>
+<li>This implies that I would <strong>strongly recommend</strong> not to update projections on a regular basis, even if teams ask for it. Stick with the pre-trial projections until you have a clean dataset for the first time, e.g. at a futility interim analysis. Then only update projections of dates of further IAs and the FA at such milestones.</li>
+<li><strong>Communication is key!</strong> Explain to teams that these point predictions come with substantial uncertainty. Often, confidence intervals may be much wider than in the above example. Make sure the team understands that this uncertainty is <strong>inherent to the problem</strong>! This, because of the need for extrapolation + accrual projections if the trial has not finished accrual yet. If a prediction of an analysis milestone, e.g. the FA, has to be substantially shifted based on updated data this does not necessarily point to an earlier mistake by the team or the statistician, but may simply be due to variability. See <a href="http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf">my BBS talk</a> for an example.</li>
+<li>If a trial is approaching a CCOD and, say, only a few events are still missing other approaches might be more meaningful to finally determine the CCOD, such as case-by-case analysis of all patients that are still censored. The moving average approach described by the oncology working group (see details below) might also be useful in that scenario.</li>
+<li>Typically, when doing prediction for PFS, investigator-PFS is more up-to-date compared to IRC-PFS. If the latter is your primary endpoint it might still be useful to do event prediction on Inv-PFS and then exploit the “concordance” between the two PFS variants to predict a timepoint when the necessary number of IRC-PFS events will be reached. A very simple example could be: at the time when you have 100 Inv-PFS events you observe (before full IRC read-out, i.e. on the raw data) 80 IRC-PFS events. So if you need a prediction when 299 IRC-PFS events happen then you could take the timepoint when you predict 100 / 80 * 299 = 374 Inv-PFS events.</li>
+</ul>
+</div>
+<div id="other-approaches" class="section level1">
+<h1>Other approaches</h1>
+<div id="gestate" class="section level2">
+<h2>gestate</h2>
+<p>The R package <a href="https://CRAN.R-project.org/package=gestate">gestate</a>, <span class="citation">Bell (2020)</span>. The <a href="https://CRAN.R-project.org/package=gestate/vignettes/event_prediction.html">vignette</a> describes its functions in a similar fashion as above, and also allows to compute intervals around the prediction. As I understand it, gestate fits several parametric models and then selects the one that “bests” fits the data. For our data this is Weibull, so that we get the same prediction as for the Weibull model above. gestate supplies confidence intervals for the number of events at a given timepoint, but not for the timepoint of the FA CCOD.</p>
+<p>It is worth noting that - in contrast to <code>eventTrack</code> - <code>gestate</code> can handle drop-out.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="kw">library</span>(gestate)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true"></a><span class="co"># accrual: observed + predicted (observed accrual not needed when using eventTrack!)</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true"></a>tot_accrual1 &lt;-<span class="st"> </span><span class="kw">subset</span>(trial2, <span class="dt">select =</span> <span class="st">&quot;accrualTime&quot;</span>, <span class="dt">subset =</span> timeUnderObservation <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>)[, <span class="dv">1</span>]</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true"></a>tot_accrual &lt;-<span class="st"> </span><span class="kw">c</span>(tot_accrual1, accrual_after_ccod <span class="op">+</span><span class="st"> </span>ccod)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true"></a>tot_accrual_unit &lt;-<span class="st"> </span><span class="kw">cumsum</span>(<span class="kw">table</span>(<span class="kw">cut</span>(tot_accrual, <span class="dv">0</span><span class="op">:</span><span class="dv">59</span>, <span class="dt">labels =</span> <span class="ot">FALSE</span>)))</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true"></a><span class="co"># Create an RCurve incorporating both observed and predicted recruitment </span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true"></a>recruit &lt;-<span class="st"> </span><span class="kw">PieceR</span>(<span class="kw">matrix</span>(<span class="kw">c</span>(<span class="kw">rep</span>(<span class="dv">1</span>, <span class="kw">length</span>(tot_accrual_unit)), </span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true"></a>                           <span class="kw">c</span>(tot_accrual_unit[<span class="dv">1</span>], <span class="kw">diff</span>(tot_accrual_unit))), <span class="dt">ncol =</span> <span class="dv">2</span>), <span class="dv">1</span>)</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true"></a><span class="co"># do the prediction: need to supply CCOD (ccod), number of events at CCOD (nevents_admincens), </span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true"></a><span class="co"># and numbers at risk then (length(tot_accrual1))</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true"></a>predictions &lt;-<span class="st"> </span><span class="kw">event_prediction</span>(<span class="dt">data =</span> pfsdata, <span class="dt">Time =</span> <span class="st">&quot;pfs&quot;</span>, <span class="dt">Event =</span> <span class="st">&quot;event&quot;</span>, </span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true"></a>                                <span class="dt">censoringOne =</span> <span class="ot">FALSE</span>, <span class="dt">rcurve =</span> recruit, <span class="dt">max_time =</span> <span class="dv">60</span>, </span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true"></a>                                <span class="dt">cond_Events =</span> nevents_admincens, </span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true"></a>                                <span class="dt">cond_NatRisk =</span> <span class="kw">length</span>(tot_accrual1), </span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true"></a>                                <span class="dt">cond_Time =</span> <span class="kw">ceiling</span>(ccod), <span class="dt">units =</span> <span class="st">&quot;Months&quot;</span>)</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true"></a></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true"></a><span class="co"># exact date (not exactly as Weibull fit above, as cond_Time argument needs to be an integer)</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true"></a>pred_gestate &lt;-<span class="st"> </span><span class="kw">exactDatesFromMonths</span>(predictions<span class="op">$</span>Summary[, <span class="kw">c</span>(<span class="st">&quot;Time&quot;</span>, <span class="st">&quot;Predicted_Events&quot;</span>)], nevents)</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true"></a>pred_gestate</span></code></pre></div>
+<pre><code>## [1] 26.32032</code></pre>
+</div>
+</div>
+<div id="info" class="section level1">
+<h1>Info</h1>
+<p>R version and packages used to generate this report:</p>
+<p>R version: R version 4.0.5 (2021-03-31)</p>
+<p>Base packages: stats / graphics / grDevices / utils / datasets / methods / base</p>
+<p>Other packages: gestate / knitr / fitdistrplus / MASS / rpact / eventTrack / muhaz / survival</p>
+<p>This document was generated on 2021-05-07 at 20:51:22.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references hanging-indent">
+<div id="ref-gestate">
+<p>Bell, James. 2020. <em>Gestate: Generalised Survival Trial Assessment Tool Environment</em>. <a href="https://CRAN.R-project.org/package=gestate">https://CRAN.R-project.org/package=gestate</a>.</p>
+</div>
+<div id="ref-fang_11">
+<p>Fang, L., and Z. Su. 2011. “A hybrid approach to predicting events in clinical trials with time-to-event outcomes.” <em>Contemp Clin Trials</em> 32 (5): 755–59.</p>
+</div>
+<div id="ref-goodman_11">
+<p>Goodman, M. S., Y. Li, and R. C. Tiwari. 2011. “Detecting multiple change points in piecewise constant hazard functions.” <em>J Appl Stat</em> 38 (11): 2523–32.</p>
+</div>
+<div id="ref-guyot_17">
+<p>Guyot, Patricia, Anthony E Ades, Matthew Beasley, Béranger Lueza, Jean-Pierre Pignon, and Nicky J Welton. 2017. “Extrapolation of Survival Curves from Cancer Trials Using External Information.” <em>Medical Decision Making : An International Journal of the Society for Medical Decision Making</em> 37 (4): 353–66. <a href="https://doi.org/10.1177/0272989X16670604">https://doi.org/10.1177/0272989X16670604</a>.</p>
+</div>
+<div id="ref-jackson_17">
+<p>Jackson, Christopher, John Stevens, Shijie Ren, Nick Latimer, Laura Bojke, Andrea Manca, and Linda Sharples. 2017. “Extrapolating Survival from Randomized Trials Using External Data: A Review of Methods.” <em>Medical Decision Making : An International Journal of the Society for Medical Decision Making</em> 37 (4): 377–90. <a href="https://doi.org/10.1177/0272989X16639900">https://doi.org/10.1177/0272989X16639900</a>.</p>
+</div>
+<div id="ref-eventTrack">
+<p>Rufibach, Kaspar. 2021. <em>EventTrack: Implements Functions and Datasets for Event Tracking</em>.</p>
+</div>
+<div id="ref-rufibach_16">
+<p>———. 2016. “Event Projection: Quantify Uncertainty and Manage Expectations of Broader Teams.” Talk at BBS seminar 18th April 2016. <a href="http://bbs.ceb-institute.org/?p=858">http://bbs.ceb-institute.org/?p=858</a>.</p>
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

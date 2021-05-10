@@ -1,0 +1,22 @@
+## which functions shall be accessible by the users?
+export(
+    bootSurvivalSample,
+    bootstrapTimeToEvent,
+    exactDatesFromMonths,
+    lambda_j_Exp,
+    kaplanMeier_at_t0,
+    hybrid_Exponential,
+    piecewiseExp_MLE,
+    piecewiseExp_profile_loglik_tau,
+    piecewiseExp_test_changepoint,
+    predictEvents,
+    predictEventsUncond
+)
+importFrom(muhaz,
+           muhaz)
+importFrom(survival,
+           Surv, survfit)
+importFrom(stats, 
+           optim, optimize, pchisq, qchisq, approx)
+
+

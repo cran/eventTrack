@@ -1,0 +1,630 @@
+---
+title: "Event tracking: predict analysis timepoints for ongoing clinical trials"
+author: 
+- name: Kaspar Rufibach
+  affiliation: PD Data Sciences, Methods, Collaboration, and Outreach Group (MCO), Roche Basel
+date: '`r Sys.setlocale("LC_TIME", "C"); format(Sys.Date(), "%d %b %Y")`'
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Event tracking: predict analysis timepoints for ongoing clinical trials}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+bibliography: biblio.bib
+---
+
+```{r setup, include = FALSE}
+now <- as.character(as.POSIXlt(Sys.time()))
+today <- as.Date(substr(now, 1, 10))
+now <- paste(today, " at ", substr(now, 12, 19), sep = "")
+
+## set some knitr options
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+# Acknowledgments
+
+I thank Marcel Wolbers and Godwin Yung for a careful review an earlier version of this document and helpful comments.
+
+# Purpose
+
+This tutorial outlines how one can predict an interim (IA) or final analysis (FA) clinical cutoff date (CCOD) in an **ongoing** trial, i.e. in a trial where 
+
+* patients have already been recruited but have not yet experienced the event and/or
+* patients have already been recruited and have already experienced the event and/or
+* further patients will be recruited in the future.
+ 
+Methodology has been implemented in the [R](https://cran.r-project.org/) package *eventTrack* (@eventTrack). Please note that the `R` code included in this document has **not** been formally validated.
+
+# Resources and how to cite eventTrack
+
+- Citation of the R package:
+```{r, include=TRUE, echo=TRUE}
+citation("eventTrack")
+```
+- Citation of the statistical methods used in eventTrack: the implemented methodology for the point prediction is taken from @fang_11.
+- The confidence intervals have been presented in a talk ([slides](http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf)) within a BBS seminar, @rufibach_16.
+
+# Challenge
+
+For a RCT with **time-to-event** endpoint we have that:
+
+* A part of patients is already accrued, another part is still to be accrued.
+* We plan an IA or FA after a **pre-specified number of events**.
+
+The questions we want to answer are:
+
+* When does this number of events happen?
+* Can we assign a confidence interval around that timepoint?
+* On a more strategic level: how can we manage the potentially large uncertainty of our point estimates in clinical teams (and higher up)?
+
+# Methodology
+
+For simplicity, assume for now only blinded data pooling the treatment arms is available. What we are interested in is the expected number of events, $m(T, S)$, at a given timepoint $T$. This quantity depends, of course, on the timepoint $T$ and on the survival function at which events happen. If these two quantities are known, we can predict $m$ using the following formula:
+
+$$
+  m(t, S) = {\color{blue}\sum_{h \in {\cal{I}}_1} 1} \ + \ 
+           {\color{brown}\sum_{j \in {\cal{I}}_2}P\Big(\text{event in }(t_j, T] | \text{no event up to }t_j\Big)} \ + \
+           {\color{red}\sum_{j \in {\cal{I}}_3} P\Big(\text{event in }(a_i, T]\Big)} \\
+       = {\color{blue}n} \ + \ 
+           {\color{brown}\sum_{j \in {\cal{I}}_2} \frac{S(t_j) - S(T)}{S(t_j)} 1\{T > t_j\}} \ + \
+           {\color{red}\sum_{j \in {\cal{I}}_3} \Big(1 - S(T - a_i)\Big) 1\{T > a_i\}}.
+$$
+This formula defines the following sets of patients:
+
+* ${\color{blue}{\cal{I}}_1}$: patients who already had the event, $n$.
+* ${\color{brown}{\cal{I}}_2}$: patients who are censored at $t_j$.
+* ${\color{red}{\cal{I}}_3}$: patients to be recruited at $a_i$.
+
+So, in order to compute $m(T, S)$ we need to specify two things:
+
+- a projection of when the remaining patients will be recruited, i.e. we need to specify the numbers $a_i$,
+- what to plug in for $S$. 
+
+Ideally, for $S$ we would like to use a nonparametric estimate, such as e.g. Kaplan-Meier. However, the estimator of $S$ needs to be defined at least up to the timepoint $T$, which typically is (much) later than the maximally observed event or censoring time at the cleaning milestone. This means we need an estimate of $S$ that **extrapolates** beyond where we have data available. @fang_11 propose to use a hybrid parametric / non-parametric estimate. In a first step, change points in the survival function (or alternatively formulated, breaks in the piecewise constant hazard) are detected. Secondly, the survival function before the last change point is estimated non-parametrically via Kaplan-Meier and the tail beyond the last change point is
+estimated parametrically, i.e. based on an exponential distribution.
+
+How to infer the changepoint via sequential testing is described in @fang_11, based on the method initially described in @goodman_11. It works as follows:
+
+1. Determine the maximal number of changepoints, $K$. $K = 5$ generally works well.
+2. Estimate a piecewise exponential hazard function with $K$ changepoints and hazard values $\alpha_1, \ldots, \alpha_{K + 1}$. Cutpoints $\tau_1, \ldots, \tau_K$ are estimated as well.
+3. Start with the model with no change points and perform a hypothesis test to compare it with the model with one change point. If we fail to reject the null hypothesis, then we stop and conclude that the final model has no change points.
+4. If we reject the null hypothesis, then we will continue on to the next hypothesis test; compare the model with one change point, to the model with two change points. If the null hypothesis is rejected we test the subsequent hypothesis. That is, we will test for the existence of $\tau_k$ only after verifying the existence of $\tau_{k-1}$. The algorithm is continued until we fail to reject a hypothesis.
+5. To control for overfitting the significance level is adjusted using an $\alpha$-spending function. For a familywise error rate of $\alpha$, @goodman_11 propose to use the local significance levels $\alpha^*_k, k = 1, \ldots, K$ defined as 
+$$
+  \alpha^*_k = \alpha / 2^{k-1}. 
+$$
+In order to find a parsimonious model, this spending function requires strong evidence for choosing a more complicated model, a model with more change points, over a simpler one. Since the spending function is decreasing, the test for each additional change point will be conducted at a more conservative local significance level than the one before it. That this spending function maintains the familywise error rate is shown in @goodman_11.
+
+# Example: simulating data and detailed prediction
+
+In order to make event predictions, a sufficiently clean dataset including accrual times and the relevant time-to-event endpoint data up to the CCOD is needed. In addition, if recruitment is not yet completed, a prediction regarding the accrual of the remaining patient is required as well. 
+
+In this section, a detailed example of all steps required for an event prediction is provided based on simulated trial data from `rpact`. In the next section, a simpler minimal analysis with only the key steps is shown.
+
+First, let us load the necessary packages:
+
+```{r, include=TRUE, echo=TRUE, results="hide", message=F}
+
+# load necessary packages
+library(rpact)          # to simulate illustrative dataset
+library(eventTrack)     # event tracking methodology
+library(fitdistrplus)   # to estimate Weibull fit
+library(knitr)          # to prettify some outputs
+```
+
+## Simulating an illustrative dataset
+
+We start by illustrating how to predict the number of events of a clinical trial over time at the design stage using `rpact`:
+
+```{r, include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6} 
+
+# ------------------------------------------------------------
+# trial details 
+# ------------------------------------------------------------
+alpha <- 0.05
+beta <- 0.2
+
+# design
+design <- getDesignGroupSequential(informationRates = 1, typeOfDesign = "asOF", 
+                                   sided = 1, alpha = alpha, beta = beta)
+
+# max number of patients
+maxNumberOfSubjects1 <- 500
+maxNumberOfSubjects2 <- 500
+maxNumberOfSubjects <- maxNumberOfSubjects1 + maxNumberOfSubjects2
+
+# survival hazard
+piecewiseSurvivalTime <- c(0, 6, 9)
+lambda2 <- c(0.025, 0.04, 0.02)
+
+# effect size
+hr <- 0.75
+
+# quantities that determine timing of reporting events
+dout1 <- 0
+dout2 <- 0
+douttime <- 12
+accrualTime <- 0
+accrualIntensity <- 42
+
+# maximal sample size
+samplesize <- getSampleSizeSurvival(design = design, piecewiseSurvivalTime = piecewiseSurvivalTime, 
+                        lambda2 = lambda2, hazardRatio = hr, dropoutRate1 = dout1, 
+                        dropoutRate2 = dout2, dropoutTime = douttime, accrualTime = accrualTime, 
+                        accrualIntensity = accrualIntensity,
+                        maxNumberOfSubjects = maxNumberOfSubjects)  
+nevents <- as.vector(ceiling(samplesize$eventsPerStage))
+
+# expected number of events overall and per group at 1-60 months after trial start
+time <- 0:60 
+probEvent <- getEventProbabilities(time = time, 
+    piecewiseSurvivalTime = piecewiseSurvivalTime, lambda2 = lambda2, 
+    hazardRatio = hr,
+    dropoutRate1 = dout1, dropoutRate2 = dout2, dropoutTime = douttime,
+    accrualTime = accrualTime, accrualIntensity = accrualIntensity, 
+    maxNumberOfSubjects = maxNumberOfSubjects)
+
+# extract expected number of events
+expEvent <- probEvent$overallEventProbabilities * maxNumberOfSubjects   # overall
+expEventInterv <- probEvent$eventProbabilities1 * maxNumberOfSubjects1  # intervention
+expEventCtrl <- probEvent$eventProbabilities2 * maxNumberOfSubjects2   # control
+
+# cumulative number of recruited patients over time
+nSubjects <- getNumberOfSubjects(time = time, accrualTime = accrualTime, 
+                                 accrualIntensity = accrualIntensity, 
+                                 maxNumberOfSubjects = maxNumberOfSubjects)
+
+# plot results
+plot(time, nSubjects$numberOfSubjects, type = "l", lwd = 2,
+     main = "Number of patients and expected number of events over time",
+     xlab = "Time from trial start (months)",
+     ylab = "Number of patients / events")
+lines(time, expEvent, col = "blue", lwd = 2)
+lines(time, expEventCtrl, col = "green")
+lines(time, expEventInterv, col = "orange")
+legend(x = 23, y = 850,
+       legend = c("Recruitment", "Expected events - All subjects",
+                "Expected events - Control", "Expected events - Intervention"),
+       col = c("black", "blue", "green", "orange"), lty = 1, lwd = c(2, 2, 1, 1),
+       bty = "n")
+
+# add lines with event prediction pre-trial
+fa_pred_pretrial <- exactDatesFromMonths(data.frame(1:length(expEvent) - 1, expEvent), nevents)
+segments(fa_pred_pretrial, 0, fa_pred_pretrial, nevents, lwd = 2, lty = 2, col = "blue")
+segments(0, nevents, fa_pred_pretrial, nevents, lwd = 2, lty = 2, col = "blue")
+```
+
+For the design, we assume there is no interim analysis, implying that we need `r nevents` events using the specified parameters. 
+
+We simplified the specification of the underlying piecewise exponential hazard function somewhat, so that at the time of the CCOD below we have already data on all stretches of the piecewise exponential hazard. Otherwise, it would be impossible to accurately estimate $S$. 
+
+Now assume this trial is running. To generate an illustrative dataset we simulate based on the above assumptions as follows:
+
+```{r, include=TRUE, echo=TRUE}
+seed <- 2020
+
+# ------------------------------------------------------------
+# generate a dataset with 1000 patients
+# administratively censor after 100 events
+# ------------------------------------------------------------
+
+# number of events after which to administratively censor
+nevents_admincens <- 100
+
+# generate a dataset after the interim analysis, administratively censor after 100 events
+trial1 <- getSimulationSurvival(design,
+    piecewiseSurvivalTime = piecewiseSurvivalTime, lambda2 = lambda2,
+    hazardRatio = hr, dropoutRate1 = dout1, dropoutRate2 = dout2, dropoutTime = douttime,
+    accrualTime = accrualTime, accrualIntensity = accrualIntensity,
+    plannedEvents = nevents_admincens, directionUpper = FALSE,
+    maxNumberOfSubjects = maxNumberOfSubjects, maxNumberOfIterations = 1,
+    maxNumberOfRawDatasetsPerStage = 1, seed = seed)
+trial2 <- getRawData(trial1)
+
+# clinical cutoff date for this analysis
+ccod <- trial2$observationTime[1]
+```
+
+Assume that after `r nevents_admincens` events we clean the dataset and want to predict the timepoint when the final number of `r nevents` events happens. This cleaning milestone is reached after `r round(ccod, 1)` months. The generated dataset looks as follows:
+
+```{r, include=TRUE, echo=TRUE}
+kable(head(trial2, 10)[, 3:ncol(trial2)], row.names = FALSE)
+```
+
+The dataset `trial2` contains simulated event times *and* accrual times for **all** patients, i.e. also those patients that have been accrued *later* than `r round(ccod, 1)` months. This means that by the timepoint our event prediction happens in reality these patients would not have been recruited yet. In our dataset, these are `r sum(trial2$timeUnderObservation <= 0)` patients. In our event prediction, we need to take this into account. The dataset is therefore reorganized as follows:
+
+```{r, include=TRUE, echo=TRUE}
+
+# ------------------------------------------------------------
+# generate a dataset with PFS information:
+# - blinded to treatment assignment
+# - remove patients recruited *after* clinical cutoff date
+# ------------------------------------------------------------
+pfsdata <- subset(trial2, subset = (timeUnderObservation > 0), 
+                  select = c("subjectId", "timeUnderObservation", "event"))
+colnames(pfsdata) <- c("pat", "pfs", "event")
+pfsdata[, "event"] <- as.numeric(pfsdata[, "event"])
+
+# define variables with PFS time and censoring indicator
+pfstime <- pfsdata[, "pfs"]
+pfsevent <- pfsdata[, "event"]
+```
+
+## Estimate $S$
+
+With this we can now estimate $S$ based on the patients already accrued and using the hybrid model. First, let us plot the estimated piecewise constant hazard functions together with a kernel estimate of the hazard function of the `r length(pfstime)` patients that already have PFS data, either with an event or censored:
+
+```{r, include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6}
+
+# --------------------------------------------------
+# analyze hazard functions
+# --------------------------------------------------
+oldpar <- par(las = 0, mar = c(5.1, 4.1, 4.1, 2.1))
+par(las = 1, mar = c(4.5, 5.5, 3, 1))
+
+# kernel estimate of hazard function
+h.kernel1 <- muhaz(pfstime, pfsevent)
+plot(h.kernel1, xlab = "time (months)", ylab = "", col = grey(0.5), lwd = 2, 
+     main = "hazard function", xlim = c(0, max(pfstime)), ylim = c(0, 0.06))
+par(las = 3)
+mtext("estimates of hazard function", side = 2, line = 4)
+rug(pfstime[pfsevent == 1])
+
+# MLE of exponential hazard, i.e. no changepoints
+exp_lambda <- sum(pfsevent) / sum(pfstime)
+segments(0, exp_lambda, 20, exp_lambda, lwd = 1, col = 2, lty = 1)
+
+# add estimated piecewise exponential hazards
+select <- c(1, 3, 5)
+legend("topleft", legend = c("kernel estimate of hazard", "exponential hazard", 
+                             paste("#changepoints = ", 
+     select, sep = ""), "true hazard"), col = c(grey(0.5), 2, 3:(length(select) + 2), 1), 
+     lty = c(1, 1, rep(2, length(select)), 1), lwd = c(2, 1, rep(2, length(select)), 2), 
+     bty = "n")
+for (i in 1:length(select)){
+  pe1 <- piecewiseExp_MLE(pfstime, pfsevent, K = select[i])
+  tau.i <- c(0, pe1$tau, max(pfstime))
+  lambda.i <- c(pe1$lambda, tail(pe1$lambda, 1))  
+  lines(tau.i, lambda.i, type = "s", col = i + 2, lwd = 2, lty = 2)
+  segments(max(tau.i), tail(lambda.i, 1), 10 * max(pfstime), 
+           tail(lambda.i, 1), col = i + 2, lwd = 2)
+}
+
+# since we simulated data we can add the truth
+lines(stepfun(piecewiseSurvivalTime[-1], lambda2), lty = 1, col = 1, lwd = 2)
+```
+
+As a next step, we perform the sequential testing for detection of a changepoint, starting from an estimated hazard with $K = 5$ changepoints:
+
+```{r, include=TRUE, echo=TRUE}
+
+# --------------------------------------------------
+# starting from a piecewise Exponential hazard with 
+# K = 5 change points, infer the last "significant"
+# change point
+# --------------------------------------------------
+pe5 <- piecewiseExp_MLE(time = pfstime, event = pfsevent, K = 5)
+pe5.tab <- piecewiseExp_test_changepoint(peMLE = pe5, alpha = 0.05)
+cp.select <- max(c(0, as.numeric(pe5.tab[, "established change point"])), na.rm = TRUE)
+kable(subset(pe5.tab, select = c("k", "H_0", "alpha_{k-1}", "p-value", "reject", 
+                                 "established change point")), row.names = FALSE)
+```
+
+Proceeding in the sequential fashion as described above no changepoint can be established based on this data. This, because we do not reject the first null hypothesis and thus the procedure stops, eventhough the $p$-value for $k = 3, 4$ are smaller than the corresponding local significance levels. The implication of this is that we do not select a changepoint, i.e. no hybrid exponential model, but simply estimate $S$ based on a constant hazard, i.e. a simple exponential model.
+
+## Prediction of the timepoint of the FA
+
+The selected estimator for $S$ is the one without changepoint. With this estimated survival function we can now proceed and predict the timepoint when the targeted `r nevents` events happen. To this end we will compute predicted events on a monthly grid. For illustration we also plot the estimated piecewise exponential survival functions with $K = 5$ changepoints and provide the predictions based on that estimate of $S$.
+
+Note that for the prediction we now also include those patients that will only be accrued **after** our CCOD, as discussed above.
+
+```{r, include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6}
+
+# ------------------------------------------------------------
+# projection for patients to be recruited after CCOD
+# 42 patients / month, and we have maxNumberOfSubjects - length(pfstime)
+# left to randomize. Assume they show up uniformly distributed
+# this accrual is relative to the CCOD
+# ------------------------------------------------------------
+accrual_after_ccod <- 1:(maxNumberOfSubjects - length(pfstime)) / accrualIntensity 
+
+# Kaplan-Meier and hybrid Exponential tail fits, for different changepoints
+par(las = 1, mar = c(4.5, 4.5, 3, 1))
+plot(survfit(Surv(pfstime, pfsevent) ~ 1), mark = "", xlim = c(0, 30), 
+     ylim = c(0, 1), conf.int = FALSE, xaxs = "i", yaxs = "i",
+     main = "estimated survival functions", xlab = "time", 
+     ylab = "survival probability", col = grey(0.75), lwd = 5)
+
+# how far out should we predict monthly number of events?
+future.units <- 15
+tab <- matrix(NA, ncol = 2, nrow = future.units)
+ts <- seq(0, 100, by = 0.01)
+
+# the function predictEvents takes as an argument any survival function
+# hybrid exponential with cp.select
+St1 <- function(t0, time, event, cp){
+     return(hybrid_Exponential(t0 = t0, time = time, event = event, 
+     changepoint = cp))}
+
+pe1 <- predictEvents(time = pfstime, event = pfsevent, 
+          St = function(t0){St1(t0, time = pfstime, 
+          event = pfsevent, cp.select)}, accrual_after_ccod, 
+          future.units = future.units)
+tab[, 1] <- pe1[, 2]
+lines(ts, St1(ts, pfstime, pfsevent, cp.select), col = 2, lwd = 2)
+
+# for illustration add piecewise exponential with five changepoints
+St2 <- function(t0, time, event, tau, lambda){
+      return(1 - getPiecewiseExponentialDistribution(time = t0, 
+                        piecewiseSurvivalTime = tau, 
+                        piecewiseLambda = lambda))}
+
+pe2 <- predictEvents(time = pfstime, event = pfsevent, 
+          St = function(t0){St2(t0, time = pfstime, 
+          event = pfsevent, tau = c(0, pe5$tau), 
+          lambda = pe5$lambda)}, accrual_after_ccod, 
+          future.units = future.units)
+tab[, 2] <- pe2[, 2]
+lines(ts, St2(ts, pfstime, pfsevent, c(0, pe5$tau), pe5$lambda), col = 3, lwd = 2)
+
+# since we have simulated data we can add the truth
+tp <- seq(0, 100, by = 0.01) 
+lines(tp, 1 - getPiecewiseExponentialDistribution(time = tp, 
+                        piecewiseSurvivalTime = piecewiseSurvivalTime, 
+                        piecewiseLambda = lambda2), col = 4, lwd = 2, lty = 1)
+
+# legend
+legS <- c("Kaplan-Meier", "hybrid exponential", 
+          "piecewise exponential K = 5", "true S")
+legend("bottomleft", legS, col = c(grey(0.75), 2:4), 
+       lwd = c(5, 2, 2, 2), bty = "n", lty = 1)
+
+# prettify the output
+tab <- data.frame(pe1[, 1], round(tab, 1))
+colnames(tab) <- c("month", legS[2:3])
+```
+
+Since we can compare our estimates to the truth we see that the hybrid exponential model actually not too badly estimates this truth. It is important to note that based on the generic formula in the methods section above we know that the latest timepoint $S$ has to be evaluated at is the _time of the last censored patient_ + `future.units`, which in our case amounts to `r round(max(pfstime[pfsevent == 0]) + future.units, 1)` months, i.e. we have to **extrapolate** `r round(max(pfstime[pfsevent == 0]) + future.units - max(pfstime), 1)` months beyond the last observed PFS time! Looking at the plot of the estimated survival functions we see how variable the various estimates are at `r round(max(pfstime[pfsevent == 0]) + future.units, 1)` months, implying high dependence of the predicted analysis timepoint on the selected model.
+
+In any case, based on these survival functions we then get the following point predictions of event numbers over time:
+
+```{r, include=TRUE, echo=TRUE}
+kable(tab, row.names = FALSE)
+```
+
+Note the sensitivity of the estimated timepoint on the estimate of $S$ in the table above. 
+
+Our sequential test suggested that we use the model without a changepoint, i.e. a standard exponential fit. This corresponds to the column `hybrid exponential`. Looking at this column we find that the targeted number of `r nevents` events happens between time unit `r which(tab[, 2] >= nevents)[1] - 1` and `r which(tab[, 2] >= nevents)[1]` after the current CCOD. Linearly interpolating we can get the "precise" timepoint as follows:
+
+```{r, include=TRUE, echo=TRUE}
+fa_pred_ccod <- exactDatesFromMonths(tab[, c("month", "hybrid exponential")], nevents)
+fa_pred_ccod
+```
+On the timescale of trial start we need to add the CCOD to get:
+```{r, include=TRUE, echo=TRUE}
+fa_pred_ccod + ccod
+```
+
+Now, let us compare our prediction of when `r nevents` events happen with what we predicted before starting the trial. As we are blinded once the trial started we only re-plot the initial prediction for the entire trial, not separate per arm.
+
+```{r, include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6} 
+
+# ------------------------------------------------------------
+# plot event predictions pre-trial and after CCOD
+# ------------------------------------------------------------
+par(las = 1, mar = c(4.5, 4.5, 3, 1))
+plot(time, nSubjects$numberOfSubjects, type = "l", lwd = 5, col = grey(0.75), 
+     main = "Number of patients and expected number of events over time",
+     xlab = "Time from trial start (months)",
+     ylab = "Number of patients / events")
+
+# expected events at design stage
+lines(time, expEvent, col = 4, lwd = 3, lty = 2)
+
+# patients already recruited
+tot_accrual1 <- subset(trial2, select = "accrualTime", subset = timeUnderObservation > 0)[, 1]
+
+# add those that will only be recruited after CCOD
+tot_accrual <- c(tot_accrual1, accrual_after_ccod + ccod)
+tot_accrual_unit <- cumsum(table(cut(tot_accrual, 0:59, labels = FALSE)))
+
+# actually not much to see, b/c simulated data perfectly uniform
+lines(1:length(tot_accrual_unit), tot_accrual_unit, col = 1) 
+
+# now add event prediction based on hybrid exponential and 100 events
+lines(tab$month + ccod, tab[, "hybrid exponential"], col = 2, lwd = 3)
+
+# add lines with prediction based on CCOD data
+segments(fa_pred_ccod + ccod, 0, fa_pred_ccod + ccod, nevents, lwd = 3, col = 2, lty = 3)
+segments(0, nevents, fa_pred_ccod + ccod, nevents, lwd = 3, col = 2, lty = 3)
+
+# finally, we add observed events over time
+# note the x-axis of the plot (time from trial start), so we need to add accrual time
+events_trial_time <- sort((pfstime + tot_accrual1)[pfsevent == 1])
+lines(stepfun(events_trial_time, 0:sum(pfsevent)), pch = NA, col = "orange", lwd = 2)
+
+# legend
+legend(x = 20, y = 930, c("Planned recruitment at design stage", 
+                          "Recruitment (up to CCOD + prediction)", 
+                          "Expected events at design stage", 
+                          "Observed events", 
+                          "Expected events (after CCOD prediction)"),
+       col = c(grey(0.75), 1, 4, "orange", 2), lty = c(1, 1, 2, 1, 1), 
+       lwd = c(3, 1, 3, 2, 3), bty = "n")
+
+# revert back to initial plot parameters
+par(oldpar)
+```
+
+So, before the trial started, based on our initial assumptions, we predicted that `r nevents` events would happen after `r round(fa_pred_pretrial, 1)` months. Our updated prediction after 100 events is now `r round(fa_pred_ccod + ccod, 1)` months, using the hybrid exponential approach. This prediction is actually quite accurate, taking into account that it relies on only `r nevents_admincens` patients with event out of `r maxNumberOfSubjects` patients. We have also added the actually observed events over time. As we simulate from the truth the observation is very close to the expectation - **this might not be the case in an actual trial**.
+
+In general, event predictions come with high variability, see also the strategic discussion below. Note that we have (at least) two sources of variability:
+
+* Accrual of the `r length(accrual_after_ccod)` patients still to be accrued is only a projection. 
+* Variability in estimation of $S$.
+
+Using bootstrap we can easily quantify the uncertainty in estimation of $S$, for a fixed accrual projection:
+
+```{r, include=TRUE, echo=TRUE} 
+
+# ------------------------------------------------------------
+# compute a confidence interval for our event prediction using bootstrap
+# ------------------------------------------------------------
+
+# do not run as takes a few minutes, code only here for illustration
+if (1 == 0){
+boot1 <- bootstrapTimeToEvent(time = pfstime, event = pfsevent, 
+          interim.gates = nevents, future.units = 20, n = length(pfstime), 
+          M0 = 1000, K0 = 5, alpha = 0.05, accrual = accrual_after_ccod, seed = 2020)
+ci <- quantile(boot1$event.dates[, 1], c(0.025, 0.975))
+}
+
+# hard-code result and add ccod
+ci <- c(10.26989, 12.50578) + ccod
+ci
+```
+
+So a 95% confidence interval around our predicted CCOD for the final analysis, `r round(fa_pred_ccod + ccod, 1)` months, ranges from `r round(ci[1], 1)` to `r round(ci[2], 1)` months. Note that we implement the entire model selection algorithm into the bootstrap, i.e. the changepoint is determined individually for every bootstrap sample.
+
+## Using parametric Weibull instead of hybrid exponential estimate
+
+If instead the hybrid exponential model we would like to use, e.g., a parametric model such as Weibull, we can proceed as follows:
+
+```{r, include=TRUE, echo=TRUE} 
+
+# ------------------------------------------------------------
+# event prediction based on pure Weibull assumption
+# ------------------------------------------------------------
+
+# prepare dataset to fit function "fitdistcens"
+pfsdata2 <- data.frame(cbind("left" = pfstime, "right" = pfstime))
+pfsdata2[pfsevent == 0, "right"] <- NA
+
+# estimate parameters based on Weibull distribution
+fit_weibull <- suppressWarnings(fitdistcens(pfsdata2, "weibull"))
+
+# event prediction based on this estimated survival function
+# simply specify survival function based on above fit
+pred_weibull <- predictEvents(time = pfstime, event = pfsevent, 
+                      St = function(t0){1 - pweibull(t0, 
+                                                     shape = fit_weibull$estimate["shape"], 
+                                                     scale = fit_weibull$estimate["scale"])}, 
+                      accrual = accrual_after_ccod, future.units = future.units)
+ccod_weibull <- exactDatesFromMonths(pred_weibull, nevents)
+ccod_weibull
+ccod_weibull + ccod
+```
+
+So the predicted CCOD for the FA based on a Weibull fit amounts to `r round(ccod_weibull + ccod, 1)`, very similar to what we receive based on the hybrid exponential model.
+
+# Example: minimal analysis 
+
+This section collects the code that is minimally needed to get to a timepoint of a prediction, without the above more detailed discussion.
+
+```{r, include=TRUE, echo=TRUE}
+
+# ------------------------------------------------------------
+# input data (e.g. OS or PFS)
+# we use the data simulated above
+# alternatively, simply use
+# pfsdata <- read.csv("C:/my path/pfs.csv")
+# --------------------------------------------------
+
+# accrual after ccod
+accrual_after_ccod <- 1:(maxNumberOfSubjects - length(pfstime)) / accrualIntensity 
+
+# infer changepoint
+pe5 <- piecewiseExp_MLE(time = pfstime, event = pfsevent, K = 5)
+pe5.tab <- piecewiseExp_test_changepoint(peMLE = pe5, alpha = 0.05)
+cp.selected <- suppressWarnings(max(as.numeric(pe5.tab[, "established change point"]), 
+                                             na.rm = TRUE))
+cp.selected <- max(cp.selected, 0)
+
+# compute predictions for selected hybrid exponential model, i.e. chosen changepoint
+future.units <- 15
+St1 <- function(t0, time, event, cp){
+     return(hybrid_Exponential(t0 = t0, time = time, event = event, 
+     changepoint = cp))}
+
+pe1 <- predictEvents(time = pfstime, event = pfsevent, 
+          St = function(t0){St1(t0, time = pfstime, 
+          event = pfsevent, cp.selected)}, accrual_after_ccod, 
+          future.units = future.units)
+
+# find exact timepoint when targeted number of events are reached through linear interpolation
+# add computation of confidence interval using code from just above
+fa_pred_ccod <- exactDatesFromMonths(tab[, c("month", "hybrid exponential")], nevents)
+fa_pred_ccod + ccod
+```
+
+# Possible extensions
+
+The method implemented in `eventTrack` currently does not account for drop-out. 
+
+The formula for $m(t, S)$ introduced in the methodology section above is generic, i.e. remains valid for event predictions. What potentially can be improved in a given example is 
+
+* the quality of the accrual projection and 
+* the extrapolation of the estimate of $S$ beyond where we have data.
+
+The hybrid exponential model is a compromise between a fully parametric and a fully nonparametric estimation method. However, there might potentially be better methods around for extrapolation of survival curves. Such extrapolation is the bread-and-butter of Health Economists and I suspect they could offer good approaches, e.g. using external data to inform extrapolation (@jackson_17, @guyot_17) of Bayesian model averaging. However, the effort put in any modelling effort has to be balanced against a potential gain in precision in estimates. Typically, the approach described above provides "good enough" predictions in many instances.
+
+What is described in this document applies to **one treatment arm**, or equivalently, to prediction blinded to treatment assignment. If you are unblinded to the treatment assignment and want to use that information for prediction, then you can perform a separate prediction of events per arm (potentially also using an estimation method for $S$ that is different between the arms) and then add these up.
+
+# Strategic context
+
+Implementing an event prediction based on data and getting the relevant numbers, point prediction + confidence interval, out is certainly an important aspect. However, in a drug development context this is only the starting point. Strategic considerations are important. Drawing from my experience I list a few aspects that I found important in the past: 
+
+* Only do the above exercise on **sufficiently clean data**. Predictions are worthless if many events are still missing because of a cleaning lag.
+* This implies that I would **strongly recommend** not to update projections on a regular basis, even if teams ask for it. Stick with the pre-trial projections until you have a clean dataset for the first time, e.g. at a futility interim analysis. Then only update projections of dates of further IAs and the FA at such milestones.
+* **Communication is key!** Explain to teams that these point predictions come with substantial uncertainty. Often, confidence intervals may be much wider than in the above example. Make sure the team understands that this uncertainty is **inherent to the problem**! This, because of the need for extrapolation + accrual projections if the trial has not finished accrual yet. If a prediction of an analysis milestone, e.g. the FA, has to be substantially shifted based on updated data this does not necessarily point to an earlier mistake by the team or the statistician, but may simply be due to variability. See [my BBS talk](http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf) for an example.
+* If a trial is approaching a CCOD and, say, only a few events are still missing other approaches might be more meaningful to finally determine the CCOD, such as case-by-case analysis of all patients that are still censored. The moving average approach described by the oncology working group (see details below) might also be useful in that scenario. 
+* Typically, when doing prediction for PFS, investigator-PFS is more up-to-date compared to IRC-PFS. If the latter is your primary endpoint it might still be useful to do event prediction on Inv-PFS and then exploit the "concordance" between the two PFS variants to predict a timepoint when the necessary number of IRC-PFS events will be reached. A very simple example could be: at the time when you have 100 Inv-PFS events you observe (before full IRC read-out, i.e. on the raw data) 80 IRC-PFS events. So if you need a prediction when 299 IRC-PFS events happen then you could take the timepoint when you predict 100 / 80 * 299 = `r round(100 / 80 * 299)` Inv-PFS events.
+
+# Other approaches
+
+## gestate
+
+The R package [gestate](https://CRAN.R-project.org/package=gestate), @gestate. The [vignette](https://CRAN.R-project.org/package=gestate/vignettes/event_prediction.html) describes its functions in a similar fashion as above, and also allows to compute intervals around the prediction. As I understand it, gestate fits several parametric models and then selects the one that "bests" fits the data. For our data this is Weibull, so that we get the same prediction as for the Weibull model above. gestate supplies confidence intervals for the number of events at a given timepoint, but not for the timepoint of the FA CCOD.
+
+It is worth noting that - in contrast to `eventTrack` - `gestate` can handle drop-out.
+
+```{r, include=TRUE, echo=TRUE}
+library(gestate)
+
+# accrual: observed + predicted (observed accrual not needed when using eventTrack!)
+tot_accrual1 <- subset(trial2, select = "accrualTime", subset = timeUnderObservation > 0)[, 1]
+tot_accrual <- c(tot_accrual1, accrual_after_ccod + ccod)
+tot_accrual_unit <- cumsum(table(cut(tot_accrual, 0:59, labels = FALSE)))
+
+# Create an RCurve incorporating both observed and predicted recruitment 
+recruit <- PieceR(matrix(c(rep(1, length(tot_accrual_unit)), 
+                           c(tot_accrual_unit[1], diff(tot_accrual_unit))), ncol = 2), 1)
+
+# do the prediction: need to supply CCOD (ccod), number of events at CCOD (nevents_admincens), 
+# and numbers at risk then (length(tot_accrual1))
+predictions <- event_prediction(data = pfsdata, Time = "pfs", Event = "event", 
+                                censoringOne = FALSE, rcurve = recruit, max_time = 60, 
+                                cond_Events = nevents_admincens, 
+                                cond_NatRisk = length(tot_accrual1), 
+                                cond_Time = ceiling(ccod), units = "Months")
+
+# exact date (not exactly as Weibull fit above, as cond_Time argument needs to be an integer)
+pred_gestate <- exactDatesFromMonths(predictions$Summary[, c("Time", "Predicted_Events")], nevents)
+pred_gestate
+```
+
+# Info
+R version and packages used to generate this report:
+ 
+R version: `r sessionInfo()$R.version$version.string`
+ 
+Base packages: `r paste(sessionInfo()$basePkgs, collapse = " / ")`
+ 
+Other packages: `r paste(names(sessionInfo()$otherPkgs), collapse = " / ")`
+ 
+This document was generated on `r now`.
+
+
+# References
+
+
