@@ -31,22 +31,28 @@ bootstrapTimeToEvent <- function(time, event, interim.gates, future.units, n, M0
 
      for (i in 1:M0){
           boot.i <- as.matrix(bootstrappedSamples[, i])
-          pe.i <- piecewiseExp_MLE(time = boot.i[, 1], event = boot.i[, 2], K = K0)
-          pe.MLEs[[i]] <- pe.i
-     
-          # only do inference in case MLE of lambda has no entry of 0
-          pe.i.tab <- piecewiseExp_test_changepoint(peMLE = pe.i, alpha = alpha)
-          pe.tabs[[i]] <- pe.i.tab
           
-          established.changepoint <- 0
-          if (all(is.na(as.numeric(pe.i.tab[, "established change point"]))) == FALSE){
+          if (K0 == 0){established.changepoint <- 0}
+          
+          if (K0 > 1){
+            pe.i <- piecewiseExp_MLE(time = boot.i[, 1], event = boot.i[, 2], K = K0)
+            pe.MLEs[[i]] <- pe.i
+     
+            # only do inference in case MLE of lambda has no entry of 0
+            pe.i.tab <- piecewiseExp_test_changepoint(peMLE = pe.i, alpha = alpha)
+            pe.tabs[[i]] <- pe.i.tab
+          
+            established.changepoint <- 0
+            if (all(is.na(as.numeric(pe.i.tab[, "established change point"]))) == FALSE){
                established.changepoint <- max(as.numeric(pe.i.tab[, "established change point"]), na.rm = TRUE)
-          }
-          changepoints[i] <- established.changepoint
+            }
+            changepoints[i] <- established.changepoint
      
           St1 <- function(t0, time, event, cp){
                return(hybrid_Exponential(t0 = t0, time = time, event = event, 
                                changepoint = cp))}
+          }
+          
           estS[, i] <- St1(t0s, time = boot.i[, 1], event = boot.i[, 2], cp = established.changepoint)
      
           pred.i <- predictEvents(time = boot.i[, 1], event = boot.i[, 2], 

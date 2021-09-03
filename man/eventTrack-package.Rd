@@ -10,8 +10,8 @@ An example has been presented in this talk: \url{http://bbs.ceb-institute.org/wp
 \tabular{ll}{
 Package:  \tab eventTrack  \cr
 Type:     \tab Package    \cr
-Version:  \tab 1.0.0      \cr
-Date:     \tab 2021-05-07 \cr
+Version:  \tab 1.0.1      \cr
+Date:     \tab 2021-09-03 \cr
 License:  \tab GPL (>=2)  \cr
 LazyLoad: \tab yes        \cr
 }
