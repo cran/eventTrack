@@ -116,7 +116,7 @@ trial1 <- getSimulationSurvival(design,
 trial2 <- getRawData(trial1)
 
 # clinical cutoff date for this analysis
-ccod <- trial2$observationTime[1]
+ccod <- trial2$lastObservationTime[1]
 
 ## ---- include=TRUE, echo=TRUE-------------------------------------------------
 kable(head(trial2, 10)[, 3:ncol(trial2)], row.names = FALSE)

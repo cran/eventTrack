@@ -222,7 +222,7 @@ trial1 <- getSimulationSurvival(design,
 trial2 <- getRawData(trial1)
 
 # clinical cutoff date for this analysis
-ccod <- trial2$observationTime[1]
+ccod <- trial2$lastObservationTime[1]
 ```
 
 Assume that after `r nevents_admincens` events we clean the dataset and want to predict the timepoint when the final number of `r nevents` events happens. This cleaning milestone is reached after `r round(ccod, 1)` months. The generated dataset looks as follows:
