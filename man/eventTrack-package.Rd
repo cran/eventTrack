@@ -5,13 +5,13 @@
 \title{Event Prediction for Time-to-Event Endpoints}
 \description{Implements the hybrid framework for event prediction described in Fang & Zheng (2011). To estimate the survival function the event prediction is based on, a piecewise Exponential hazard function is fit to the time-to-event data to infer the potential change points. Prior to the last identified change point, the survival function is estimated using Kaplan-Meier, and the tail after the change point is fit using piecewise Exponential. The Weibull version described in Fang and Zheng (2011) is not implemented here.
 
-An example has been presented in this talk: \url{http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf}.}
+An example has been presented in this talk: \url{https://baselbiometrics.github.io/home/docs/talks/20160428/1_Rufibach.pdf}.}
 \details{
 \tabular{ll}{
 Package:  \tab eventTrack  \cr
 Type:     \tab Package    \cr
-Version:  \tab 1.0.2      \cr
-Date:     \tab 2022-08-25 \cr
+Version:  \tab 1.0.3      \cr
+Date:     \tab 2023-08-03 \cr
 License:  \tab GPL (>=2)  \cr
 LazyLoad: \tab yes        \cr
 }

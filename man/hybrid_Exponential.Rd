@@ -26,7 +26,7 @@ Detecting multiple change points in piecewise constant hazard functions.
 Rufibach, K. (2016).
 \emph{Event projection: quantify uncertainty and manage expectations of broader teams.}
 Slides for talk given in Basel Biometric Section Seminar on 28th April 2016.
-\url{http://bbs.ceb-institute.org/wp-content/uploads/2016/06/Kaspar-event_tracking.pdf}.
+\url{https://baselbiometrics.github.io/home/docs/talks/20160428/1_Rufibach.pdf}.
 }
 
 \examples{

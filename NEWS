@@ -5,3 +5,11 @@ eventTrack_1.0.0
 eventTrack_1.0.1
 ---------------------------------
 - bootstrapTimeToEvent did not work for K0 = 0, this has now been fixed
+
+eventTrack_1.0.2
+---------------------------------
+- Some minor updates.
+
+eventTrack_1.0.3
+---------------------------------
+- Fixed link to BBS presentation.
