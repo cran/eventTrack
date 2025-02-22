@@ -1,10 +1,11 @@
 Package: eventTrack
 Type: Package
 Title: Event Prediction for Time-to-Event Endpoints
-Version: 1.0.3
-Date: 2023-08-03
-Author: Kaspar Rufibach
-Maintainer: Kaspar Rufibach <kaspar.rufibach@roche.com>
+Version: 1.0.4
+Date: 2025-02-21
+Authors@R: 
+    person(given = "Kaspar", family = "Rufibach", role = c("aut", "cre"), email = "kaspar.rufibach@gmail.com")
+Maintainer: Kaspar Rufibach <kaspar.rufibach@gmail.com>
 Depends: survival, muhaz, R (>= 3.5.0)
 Suggests: knitr, rmarkdown, rpact (>= 3.3.1), fitdistrplus, gestate
 VignetteBuilder: knitr
@@ -12,6 +13,7 @@ Description: Implements the hybrid framework for event prediction described in F
 License: GPL (>= 2)
 LazyLoad: yes
 NeedsCompilation: no
-Packaged: 2023-08-03 10:14:33 UTC; rufiback
+Packaged: 2025-02-21 19:15:00 UTC; kaspa
+Author: Kaspar Rufibach [aut, cre]
 Repository: CRAN
-Date/Publication: 2023-08-08 11:20:02 UTC
+Date/Publication: 2025-02-22 11:00:02 UTC

@@ -6,18 +6,19 @@ now <- paste(today, " at ", substr(now, 12, 19), sep = "")
 ## set some knitr options
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 citation("eventTrack")
 
-## ---- include=TRUE, echo=TRUE, results="hide", message=F----------------------
+## ----include=TRUE, echo=TRUE, results="hide", message=F-----------------------
 
 # load necessary packages
 library(rpact)          # to simulate illustrative dataset
+library(muhaz)          # kernel estimate of hazard
 library(eventTrack)     # event tracking methodology
 library(fitdistrplus)   # to estimate Weibull fit
 library(knitr)          # to prettify some outputs
 
-## ---- include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6------------------
+## ----include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6-------------------
 
 # ------------------------------------------------------------
 # trial details 
@@ -94,7 +95,7 @@ fa_pred_pretrial <- exactDatesFromMonths(data.frame(1:length(expEvent) - 1, expE
 segments(fa_pred_pretrial, 0, fa_pred_pretrial, nevents, lwd = 2, lty = 2, col = "blue")
 segments(0, nevents, fa_pred_pretrial, nevents, lwd = 2, lty = 2, col = "blue")
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 seed <- 2020
 
 # ------------------------------------------------------------
@@ -118,10 +119,10 @@ trial2 <- getRawData(trial1)
 # clinical cutoff date for this analysis
 ccod <- trial2$lastObservationTime[1]
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 kable(head(trial2, 10)[, 3:ncol(trial2)], row.names = FALSE)
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 
 # ------------------------------------------------------------
 # generate a dataset with PFS information:
@@ -137,7 +138,7 @@ pfsdata[, "event"] <- as.numeric(pfsdata[, "event"])
 pfstime <- pfsdata[, "pfs"]
 pfsevent <- pfsdata[, "event"]
 
-## ---- include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6------------------
+## ----include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6-------------------
 
 # --------------------------------------------------
 # analyze hazard functions
@@ -176,7 +177,7 @@ for (i in 1:length(select)){
 # since we simulated data we can add the truth
 lines(stepfun(piecewiseSurvivalTime[-1], lambda2), lty = 1, col = 1, lwd = 2)
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 
 # --------------------------------------------------
 # starting from a piecewise Exponential hazard with 
@@ -189,7 +190,7 @@ cp.select <- max(c(0, as.numeric(pe5.tab[, "established change point"])), na.rm 
 kable(subset(pe5.tab, select = c("k", "H_0", "alpha_{k-1}", "p-value", "reject", 
                                  "established change point")), row.names = FALSE)
 
-## ---- include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6------------------
+## ----include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6-------------------
 
 # ------------------------------------------------------------
 # projection for patients to be recruited after CCOD
@@ -254,17 +255,17 @@ legend("bottomleft", legS, col = c(grey(0.75), 2:4),
 tab <- data.frame(pe1[, 1], round(tab, 1))
 colnames(tab) <- c("month", legS[2:3])
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 kable(tab, row.names = FALSE)
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 fa_pred_ccod <- exactDatesFromMonths(tab[, c("month", "hybrid exponential")], nevents)
 fa_pred_ccod
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 fa_pred_ccod + ccod
 
-## ---- include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6------------------
+## ----include=TRUE, echo=TRUE, fig.width = 8, fig.height = 6-------------------
 
 # ------------------------------------------------------------
 # plot event predictions pre-trial and after CCOD
@@ -312,7 +313,7 @@ legend(x = 20, y = 930, c("Planned recruitment at design stage",
 # revert back to initial plot parameters
 par(oldpar)
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 
 # ------------------------------------------------------------
 # compute a confidence interval for our event prediction using bootstrap
@@ -330,7 +331,7 @@ ci <- quantile(boot1$event.dates[, 1], c(0.025, 0.975))
 ci <- c(10.26989, 12.50578) + ccod
 ci
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 
 # ------------------------------------------------------------
 # event prediction based on pure Weibull assumption
@@ -354,7 +355,7 @@ ccod_weibull <- exactDatesFromMonths(pred_weibull, nevents)
 ccod_weibull
 ccod_weibull + ccod
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 
 # ------------------------------------------------------------
 # input data (e.g. OS or PFS)
@@ -389,7 +390,7 @@ pe1 <- predictEvents(time = pfstime, event = pfsevent,
 fa_pred_ccod <- exactDatesFromMonths(tab[, c("month", "hybrid exponential")], nevents)
 fa_pred_ccod + ccod
 
-## ---- include=TRUE, echo=TRUE-------------------------------------------------
+## ----include=TRUE, echo=TRUE--------------------------------------------------
 library(gestate)
 
 # accrual: observed + predicted (observed accrual not needed when using eventTrack!)

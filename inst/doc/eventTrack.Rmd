@@ -107,6 +107,7 @@ First, let us load the necessary packages:
 
 # load necessary packages
 library(rpact)          # to simulate illustrative dataset
+library(muhaz)          # kernel estimate of hazard
 library(eventTrack)     # event tracking methodology
 library(fitdistrplus)   # to estimate Weibull fit
 library(knitr)          # to prettify some outputs

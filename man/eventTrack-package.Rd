@@ -10,8 +10,8 @@ An example has been presented in this talk: \url{https://baselbiometrics.github.
 \tabular{ll}{
 Package:  \tab eventTrack  \cr
 Type:     \tab Package    \cr
-Version:  \tab 1.0.3      \cr
-Date:     \tab 2023-08-03 \cr
+Version:  \tab 1.0.4      \cr
+Date:     \tab 2025-02-21 \cr
 License:  \tab GPL (>=2)  \cr
 LazyLoad: \tab yes        \cr
 }
@@ -21,7 +21,7 @@ LazyLoad: \tab yes        \cr
 
 \author{
 Kaspar Rufibach (maintainer) \cr 
-\email{kaspar.rufibach@roche.com}
+\email{kaspar.rufibach@gmail.com}
 }
 
 \examples{
